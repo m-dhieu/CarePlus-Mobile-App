@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'features/auth/auth_gate.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -21,7 +20,11 @@ class CarePlusApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
       ),
-      home: const AuthGate(),
+      home: const Scaffold(
+        body: Center(
+          child: Text('Care+ backend ready — UI pending'),
+        ),
+      ),
     );
   }
 }
