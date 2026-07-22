@@ -2,17 +2,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:careplus/features/auth/validators.dart';
 
 void main() {
-  group('validatePhone', () {
-    test('accepts E.164 formatted numbers', () {
-      expect(validatePhone('+250788123456'), isNull);
+  group('validateEmail', () {
+    test('accepts a well-formed email', () {
+      expect(validateEmail('ada@example.com'), isNull);
     });
 
     test('rejects empty input', () {
-      expect(validatePhone(''), isNotNull);
+      expect(validateEmail(''), isNotNull);
     });
 
-    test('rejects numbers without a country code', () {
-      expect(validatePhone('0788123456'), isNotNull);
+    test('rejects a string with no @ or domain', () {
+      expect(validateEmail('not-an-email'), isNotNull);
     });
   });
 
@@ -37,20 +37,6 @@ void main() {
 
     test('rejects empty input', () {
       expect(validateFullName(''), isNotNull);
-    });
-  });
-
-  group('validateOtpCode', () {
-    test('accepts a 6-digit code', () {
-      expect(validateOtpCode('123456'), isNull);
-    });
-
-    test('rejects a code with the wrong length', () {
-      expect(validateOtpCode('123'), isNotNull);
-    });
-
-    test('rejects non-numeric input', () {
-      expect(validateOtpCode('abcdef'), isNotNull);
     });
   });
 }
