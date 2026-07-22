@@ -1,0 +1,236 @@
+{
+  "info": {
+    "name": "Care+ Auth (Firebase REST)",
+    "description": "Hits Firebase's real Identity Toolkit + Firestore REST APIs for project careplusplus-b8166 — the same operations CareAuthRepository calls internally. Run requests top to bottom.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Register (Sign Up)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set('testEmail', 'postman-test+' + Date.now() + '@example.com');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "pm.environment.set('idToken', json.idToken);",
+              "pm.environment.set('uid', json.localId);",
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": {
+          "raw": "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={{apiKey}}",
+          "protocol": "https",
+          "host": ["identitytoolkit", "googleapis", "com"],
+          "path": ["v1", "accounts:signUp"],
+          "query": [{ "key": "key", "value": "{{apiKey}}" }]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"displayName\": \"{{testFullName}}\",\n  \"returnSecureToken\": true\n}"
+        }
+      }
+    },
+    {
+      "name": "2. Send Email Verification",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": {
+          "raw": "https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key={{apiKey}}",
+          "protocol": "https",
+          "host": ["identitytoolkit", "googleapis", "com"],
+          "path": ["v1", "accounts:sendOobCode"],
+          "query": [{ "key": "key", "value": "{{apiKey}}" }]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"requestType\": \"VERIFY_EMAIL\",\n  \"idToken\": \"{{idToken}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "3. Firestore - Write users/{uid} profile",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{idToken}}" }
+        ],
+        "url": {
+          "raw": "https://firestore.googleapis.com/v1/projects/{{projectId}}/databases/(default)/documents/users/{{uid}}",
+          "protocol": "https",
+          "host": ["firestore", "googleapis", "com"],
+          "path": [
+            "v1",
+            "projects",
+            "{{projectId}}",
+            "databases",
+            "(default)",
+            "documents",
+            "users",
+            "{{uid}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fields\": {\n    \"fullName\": { \"stringValue\": \"{{testFullName}}\" },\n    \"email\": { \"stringValue\": \"{{testEmail}}\" },\n    \"phone\": { \"stringValue\": \"{{testPhone}}\" },\n    \"role\": { \"stringValue\": \"patient\" },\n    \"status\": { \"stringValue\": \"active\" }\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "4. Firestore - Read users/{uid} profile",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{idToken}}" }],
+        "url": {
+          "raw": "https://firestore.googleapis.com/v1/projects/{{projectId}}/databases/(default)/documents/users/{{uid}}",
+          "protocol": "https",
+          "host": ["firestore", "googleapis", "com"],
+          "path": [
+            "v1",
+            "projects",
+            "{{projectId}}",
+            "databases",
+            "(default)",
+            "documents",
+            "users",
+            "{{uid}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "5. Logout (client-side, nothing to call)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://identitytoolkit.googleapis.com/v1/accounts:lookup?key={{apiKey}}",
+          "protocol": "https",
+          "host": ["identitytoolkit", "googleapis", "com"],
+          "path": ["v1", "accounts:lookup"],
+          "query": [{ "key": "key", "value": "{{apiKey}}" }]
+        },
+        "description": "Firebase has no server-side 'logout' call — signing out just discards the idToken on the client. This request instead re-fetches account info with the still-valid idToken, so you can see the account exists before continuing to Sign In below."
+      }
+    },
+    {
+      "name": "6. Sign In (Login)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "pm.environment.set('idToken', json.idToken);",
+              "pm.environment.set('uid', json.localId);",
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": {
+          "raw": "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={{apiKey}}",
+          "protocol": "https",
+          "host": ["identitytoolkit", "googleapis", "com"],
+          "path": ["v1", "accounts:signInWithPassword"],
+          "query": [{ "key": "key", "value": "{{apiKey}}" }]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"returnSecureToken\": true\n}"
+        }
+      }
+    },
+    {
+      "name": "7. Google Sign-In (2nd auth method)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "pm.environment.set('idToken', json.idToken);",
+              "pm.environment.set('uid', json.localId);",
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": {
+          "raw": "https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key={{apiKey}}",
+          "protocol": "https",
+          "host": ["identitytoolkit", "googleapis", "com"],
+          "path": ["v1", "accounts:signInWithIdp"],
+          "query": [{ "key": "key", "value": "{{apiKey}}" }]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"postBody\": \"id_token={{googleIdToken}}&providerId=google.com\",\n  \"requestUri\": \"http://localhost\",\n  \"returnIdpCredential\": true,\n  \"returnSecureToken\": true\n}"
+        },
+        "description": "Set the googleIdToken environment variable first — get it from Google's OAuth 2.0 Playground (developers.google.com/oauthplayground) using your Web client ID/secret, since Google requires a real interactive login that can't be scripted. This request trades that Google token for a real Firebase session, same shape as Register/Sign In."
+      }
+    },
+    {
+      "name": "8. Send Password Reset Email",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": {
+          "raw": "https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key={{apiKey}}",
+          "protocol": "https",
+          "host": ["identitytoolkit", "googleapis", "com"],
+          "path": ["v1", "accounts:sendOobCode"],
+          "query": [{ "key": "key", "value": "{{apiKey}}" }]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"requestType\": \"PASSWORD_RESET\",\n  \"email\": \"{{testEmail}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "9. Cleanup - Delete test account",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": {
+          "raw": "https://identitytoolkit.googleapis.com/v1/accounts:delete?key={{apiKey}}",
+          "protocol": "https",
+          "host": ["identitytoolkit", "googleapis", "com"],
+          "path": ["v1", "accounts:delete"],
+          "query": [{ "key": "key", "value": "{{apiKey}}" }]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"idToken\": \"{{idToken}}\"\n}"
+        },
+        "description": "Deletes the Auth account. The Firestore users/{uid} doc from step 3 is left behind on purpose so you can inspect it in the Firebase Console — delete it manually there when done."
+      }
+    }
+  ]
+}

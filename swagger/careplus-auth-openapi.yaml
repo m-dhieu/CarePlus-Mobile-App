@@ -1,0 +1,353 @@
+openapi: 3.0.3
+info:
+  title: Care+ Auth (Firebase REST)
+  version: "1.0.0"
+  description: >
+    Real Firebase Identity Toolkit + Firestore REST endpoints for project
+    careplusplus-b8166 — the same operations CareAuthRepository calls
+    internally. Unlike the Postman collection in ../postman/, Swagger UI does
+    not auto-chain requests: after **Sign Up** or **Sign In**, copy `idToken`
+    and `localId` from the response and paste them into the fields of
+    whichever request you run next.
+servers:
+  - url: https://identitytoolkit.googleapis.com
+tags:
+  - name: 1. Register & Log in
+    description: Create an account, sign in, and check who's currently signed in.
+  - name: 2. Google Sign-In (2nd method)
+    description: >
+      Trade a real Google ID token for a Firebase session. Getting that Google
+      token requires a real interactive login — see AUTHENTICATION.md or the
+      conversation history for the OAuth 2.0 Playground steps; it can't be
+      scripted from here.
+  - name: 3. Verify & Recover
+    description: Email verification and password reset codes.
+  - name: 4. Firestore profile
+    description: Read/write the users/{uid} profile document our app keeps alongside the Auth account.
+  - name: 5. Cleanup
+    description: Delete the throwaway test account when you're done.
+paths:
+  "/v1/accounts:signUp":
+    post:
+      tags: [1. Register & Log in]
+      summary: Register (Sign Up)
+      operationId: signUp
+      parameters:
+        - name: key
+          in: query
+          required: true
+          schema:
+            type: string
+            default: AIzaSyAyL_VdX_wXUT-vikYSYmCbnPjN62-Q0NA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, returnSecureToken]
+              properties:
+                email:
+                  type: string
+                  example: postman-test+123@example.com
+                password:
+                  type: string
+                  example: SwaggerTest123!
+                displayName:
+                  type: string
+                  description: Saved as the Firebase Auth profile name (fullName). Reuse this same value in the Firestore write step below.
+                  example: Swagger Test User
+                returnSecureToken:
+                  type: boolean
+                  example: true
+      responses:
+        "200":
+          description: Account created — copy idToken and localId from here
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  idToken:
+                    type: string
+                  localId:
+                    type: string
+                  email:
+                    type: string
+                  refreshToken:
+                    type: string
+                  expiresIn:
+                    type: string
+              example:
+                idToken: eyJhbGciOiJSUzI1NiIsImtpZ...
+                email: postman-test+123@example.com
+                refreshToken: AMf-vBz...
+                expiresIn: "3600"
+                localId: 8f3k2LmPqR9xYz1A2b3C
+
+  "/v1/accounts:signInWithPassword":
+    post:
+      tags: [1. Register & Log in]
+      summary: Log in
+      operationId: signInWithPassword
+      parameters:
+        - name: key
+          in: query
+          required: true
+          schema:
+            type: string
+            default: AIzaSyAyL_VdX_wXUT-vikYSYmCbnPjN62-Q0NA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, returnSecureToken]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+                returnSecureToken:
+                  type: boolean
+                  example: true
+      responses:
+        "200":
+          description: Signed in — copy idToken and localId from here
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  idToken:
+                    type: string
+                  localId:
+                    type: string
+              example:
+                idToken: eyJhbGciOiJSUzI1NiIsImtpZ...
+                localId: 8f3k2LmPqR9xYz1A2b3C
+
+  "/v1/accounts:lookup":
+    post:
+      tags: [1. Register & Log in]
+      summary: Get account info (who is this idToken signed in as?)
+      operationId: lookup
+      description: >
+        Firebase has no server-side "logout" call — signing out is purely a
+        client-side decision to stop sending the idToken. This request just
+        confirms the token/account is still valid.
+      parameters:
+        - name: key
+          in: query
+          required: true
+          schema:
+            type: string
+            default: AIzaSyAyL_VdX_wXUT-vikYSYmCbnPjN62-Q0NA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idToken]
+              properties:
+                idToken:
+                  type: string
+      responses:
+        "200":
+          description: Account info for the given idToken
+
+  "/v1/accounts:signInWithIdp":
+    post:
+      tags: [2. Google Sign-In (2nd method)]
+      summary: Exchange a Google ID token for a Firebase session
+      operationId: signInWithIdp
+      description: >
+        Get a Google ID token first via developers.google.com/oauthplayground
+        (using your Web client ID + secret from Firebase Console → Google
+        provider), then paste it into idTokenGoogle below.
+      parameters:
+        - name: key
+          in: query
+          required: true
+          schema:
+            type: string
+            default: AIzaSyAyL_VdX_wXUT-vikYSYmCbnPjN62-Q0NA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [postBody, requestUri, returnSecureToken]
+              properties:
+                postBody:
+                  type: string
+                  description: Literally the string "id_token=<google id token>&providerId=google.com"
+                  example: id_token=PASTE_GOOGLE_ID_TOKEN_HERE&providerId=google.com
+                requestUri:
+                  type: string
+                  example: http://localhost
+                returnIdpCredential:
+                  type: boolean
+                  example: true
+                returnSecureToken:
+                  type: boolean
+                  example: true
+      responses:
+        "200":
+          description: Signed in via Google — copy idToken and localId from here, same as Register/Sign In
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  idToken:
+                    type: string
+                  localId:
+                    type: string
+                  email:
+                    type: string
+                  isNewUser:
+                    type: boolean
+              example:
+                idToken: eyJhbGciOiJSUzI1NiIsImtpZ...
+                localId: Q8aEtCXLh6W0qhSwYkKmCc9TpfW2
+                email: you@gmail.com
+                isNewUser: true
+
+  "/v1/accounts:sendOobCode":
+    post:
+      tags: [3. Verify & Recover]
+      summary: Send email verification or password reset
+      operationId: sendOobCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [requestType]
+              properties:
+                requestType:
+                  type: string
+                  description: >
+                    VERIFY_EMAIL needs idToken (right after Sign Up).
+                    PASSWORD_RESET needs email instead (forgot password).
+                  enum: [VERIFY_EMAIL, PASSWORD_RESET]
+                idToken:
+                  type: string
+                  description: Required when requestType is VERIFY_EMAIL
+                email:
+                  type: string
+                  description: Required when requestType is PASSWORD_RESET
+      parameters:
+        - name: key
+          in: query
+          required: true
+          schema:
+            type: string
+            default: AIzaSyAyL_VdX_wXUT-vikYSYmCbnPjN62-Q0NA
+      responses:
+        "200":
+          description: Code sent to the account's email
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  email:
+                    type: string
+
+  "/v1/projects/{projectId}/databases/(default)/documents/users/{uid}":
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: string
+          default: careplusplus-b8166
+      - name: uid
+        in: path
+        required: true
+        description: Paste the localId from Sign Up or Sign In here
+        schema:
+          type: string
+    get:
+      tags: [4. Firestore profile]
+      summary: Read the profile
+      operationId: getUserProfile
+      servers:
+        - url: https://firestore.googleapis.com
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: The Firestore document
+    patch:
+      tags: [4. Firestore profile]
+      summary: Write the profile
+      operationId: writeUserProfile
+      servers:
+        - url: https://firestore.googleapis.com
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fields:
+                  type: object
+              example:
+                fields:
+                  fullName:
+                    stringValue: Swagger Test User
+                  email:
+                    stringValue: postman-test+123@example.com
+                  phone:
+                    stringValue: "+250788123456"
+                  role:
+                    stringValue: patient
+                  status:
+                    stringValue: active
+      responses:
+        "200":
+          description: The updated Firestore document
+
+  "/v1/accounts:delete":
+    post:
+      tags: [5. Cleanup]
+      summary: Delete the test account
+      operationId: deleteAccount
+      parameters:
+        - name: key
+          in: query
+          required: true
+          schema:
+            type: string
+            default: AIzaSyAyL_VdX_wXUT-vikYSYmCbnPjN62-Q0NA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idToken]
+              properties:
+                idToken:
+                  type: string
+      responses:
+        "200":
+          description: Account deleted
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Paste the idToken from Sign Up or Sign In as the bearer token
