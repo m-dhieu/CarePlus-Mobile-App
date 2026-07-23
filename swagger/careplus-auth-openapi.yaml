@@ -2,7 +2,6 @@ openapi: 3.0.3
 info:
   title: Care+ Auth API (Firebase REST)
   version: "1.0.0"
-  description: Firebase Identity Toolkit and Firestore REST endpoints backing Care+ authentication (project careplusplus-b8166).
 servers:
   - url: https://identitytoolkit.googleapis.com
 tags:
