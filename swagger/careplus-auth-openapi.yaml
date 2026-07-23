@@ -60,25 +60,6 @@ paths:
         "400":
           $ref: "#/components/responses/Error"
 
-  "/v1/accounts:lookup":
-    post:
-      tags: [Authentication]
-      summary: Get current session
-      description: Firebase has no server-side logout call — this just confirms an idToken is still valid.
-      parameters:
-        - $ref: "#/components/parameters/ApiKey"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/IdTokenRequest"
-      responses:
-        "200":
-          description: Account info for the given idToken
-        "400":
-          $ref: "#/components/responses/Error"
-
   "/v1/accounts:signInWithIdp":
     post:
       tags: [Google Sign-In]
@@ -170,14 +151,6 @@ components:
         returnSecureToken:
           type: boolean
           example: true
-
-    IdTokenRequest:
-      type: object
-      required: [idToken]
-      properties:
-        idToken:
-          type: string
-          description: From the AuthResponse of Register, Log in, or Google Sign-In
 
     AuthResponse:
       type: object
