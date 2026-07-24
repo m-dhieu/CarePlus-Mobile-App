@@ -113,9 +113,9 @@ components:
       name: key
       in: query
       required: true
+      description: Your Firebase Web API key (Console → Project Settings → General → Your apps)
       schema:
         type: string
-        default: AIzaSyAyL_VdX_wXUT-vikYSYmCbnPjN62-Q0NA
 
   schemas:
     SignUpRequest:
