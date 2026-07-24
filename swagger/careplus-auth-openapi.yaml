@@ -1,0 +1,246 @@
+openapi: 3.0.3
+info:
+  title: Care+ Auth API (Firebase REST)
+  version: "1.0.0"
+servers:
+  - url: https://identitytoolkit.googleapis.com
+tags:
+  - name: Authentication
+    description: Register, log in, and check the current session.
+  - name: Google Sign-In
+    description: Second login method — trades a Google ID token for a Firebase session.
+  - name: Account Recovery
+    description: Email verification and password reset.
+
+paths:
+  "/v1/accounts:signUp":
+    post:
+      tags: [Authentication]
+      summary: Register
+      description: Create a new account with email and password.
+      parameters:
+        - $ref: "#/components/parameters/ApiKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignUpRequest"
+      responses:
+        "200":
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          $ref: "#/components/responses/Error"
+
+  "/v1/accounts:signInWithPassword":
+    post:
+      tags: [Authentication]
+      summary: Log in
+      description: Sign in with an existing email and password.
+      parameters:
+        - $ref: "#/components/parameters/ApiKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          $ref: "#/components/responses/Error"
+
+  "/v1/accounts:signInWithIdp":
+    post:
+      tags: [Google Sign-In]
+      summary: Sign in with Google
+      description: Requires a real Google ID token obtained via an interactive login (e.g. OAuth 2.0 Playground) — that step can't be scripted.
+      parameters:
+        - $ref: "#/components/parameters/ApiKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoogleSignInRequest"
+      responses:
+        "200":
+          description: Signed in via Google
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          $ref: "#/components/responses/Error"
+
+  "/v1/accounts:sendOobCode":
+    post:
+      tags: [Account Recovery]
+      summary: Send verification or reset email
+      description: One endpoint, two request shapes — see schema.
+      parameters:
+        - $ref: "#/components/parameters/ApiKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/SendVerificationEmailRequest"
+                - $ref: "#/components/schemas/SendPasswordResetRequest"
+      responses:
+        "200":
+          description: Code sent to the account's email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OobCodeResponse"
+        "400":
+          $ref: "#/components/responses/Error"
+
+components:
+  parameters:
+    ApiKey:
+      name: key
+      in: query
+      required: true
+      description: Your Firebase Web API key (Console → Project Settings → General → Your apps)
+      schema:
+        type: string
+
+  schemas:
+    SignUpRequest:
+      type: object
+      required: [email, password, returnSecureToken]
+      properties:
+        email:
+          type: string
+          format: email
+          example: postman-test+123@example.com
+        password:
+          type: string
+          minLength: 8
+          example: SwaggerTest123!
+        displayName:
+          type: string
+          description: Saved as the account's fullName
+          example: Swagger Test User
+        returnSecureToken:
+          type: boolean
+          example: true
+
+    LoginRequest:
+      type: object
+      required: [email, password, returnSecureToken]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        returnSecureToken:
+          type: boolean
+          example: true
+
+    AuthResponse:
+      type: object
+      properties:
+        idToken:
+          type: string
+          description: Reuse this in subsequent requests
+        localId:
+          type: string
+          description: The Firebase uid
+        email:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: string
+        isNewUser:
+          type: boolean
+
+    GoogleSignInRequest:
+      type: object
+      required: [postBody, requestUri, returnSecureToken]
+      properties:
+        postBody:
+          type: string
+          example: id_token=PASTE_GOOGLE_ID_TOKEN&providerId=google.com
+        requestUri:
+          type: string
+          example: http://localhost
+        returnIdpCredential:
+          type: boolean
+          example: true
+        returnSecureToken:
+          type: boolean
+          example: true
+
+    SendVerificationEmailRequest:
+      type: object
+      required: [requestType, idToken]
+      properties:
+        requestType:
+          type: string
+          enum: [VERIFY_EMAIL]
+        idToken:
+          type: string
+
+    SendPasswordResetRequest:
+      type: object
+      required: [requestType, email]
+      properties:
+        requestType:
+          type: string
+          enum: [PASSWORD_RESET]
+        email:
+          type: string
+          format: email
+
+    OobCodeResponse:
+      type: object
+      properties:
+        email:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: integer
+              example: 400
+            message:
+              type: string
+              example: CONFIGURATION_NOT_FOUND
+            errors:
+              type: array
+              items:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  domain:
+                    type: string
+                  reason:
+                    type: string
+
+  responses:
+    Error:
+      description: Request failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"

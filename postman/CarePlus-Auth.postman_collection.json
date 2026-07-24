@@ -1,0 +1,150 @@
+{
+  "info": {
+    "name": "Care+ Auth (Firebase REST)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Register",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set('testEmail', 'postman-test+' + Date.now() + '@example.com');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "pm.environment.set('idToken', json.idToken);",
+              "pm.environment.set('uid', json.localId);",
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": {
+          "raw": "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={{apiKey}}",
+          "protocol": "https",
+          "host": ["identitytoolkit", "googleapis", "com"],
+          "path": ["v1", "accounts:signUp"],
+          "query": [{ "key": "key", "value": "{{apiKey}}" }]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"displayName\": \"{{testFullName}}\",\n  \"returnSecureToken\": true\n}"
+        }
+      }
+    },
+    {
+      "name": "2. Log in",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "pm.environment.set('idToken', json.idToken);",
+              "pm.environment.set('uid', json.localId);",
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": {
+          "raw": "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={{apiKey}}",
+          "protocol": "https",
+          "host": ["identitytoolkit", "googleapis", "com"],
+          "path": ["v1", "accounts:signInWithPassword"],
+          "query": [{ "key": "key", "value": "{{apiKey}}" }]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"returnSecureToken\": true\n}"
+        }
+      }
+    },
+    {
+      "name": "3. Sign in with Google",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "pm.environment.set('idToken', json.idToken);",
+              "pm.environment.set('uid', json.localId);",
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": {
+          "raw": "https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key={{apiKey}}",
+          "protocol": "https",
+          "host": ["identitytoolkit", "googleapis", "com"],
+          "path": ["v1", "accounts:signInWithIdp"],
+          "query": [{ "key": "key", "value": "{{apiKey}}" }]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"postBody\": \"id_token={{googleIdToken}}&providerId=google.com\",\n  \"requestUri\": \"http://localhost\",\n  \"returnIdpCredential\": true,\n  \"returnSecureToken\": true\n}"
+        },
+        "description": "Set the googleIdToken environment variable first — get it from developers.google.com/oauthplayground using your Web client ID/secret."
+      }
+    },
+    {
+      "name": "4. Send email verification",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": {
+          "raw": "https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key={{apiKey}}",
+          "protocol": "https",
+          "host": ["identitytoolkit", "googleapis", "com"],
+          "path": ["v1", "accounts:sendOobCode"],
+          "query": [{ "key": "key", "value": "{{apiKey}}" }]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"requestType\": \"VERIFY_EMAIL\",\n  \"idToken\": \"{{idToken}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "5. Send password reset email",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": {
+          "raw": "https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key={{apiKey}}",
+          "protocol": "https",
+          "host": ["identitytoolkit", "googleapis", "com"],
+          "path": ["v1", "accounts:sendOobCode"],
+          "query": [{ "key": "key", "value": "{{apiKey}}" }]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"requestType\": \"PASSWORD_RESET\",\n  \"email\": \"{{testEmail}}\"\n}"
+        }
+      }
+    }
+  ]
+}
