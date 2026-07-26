@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../data/mock_data.dart';
-import '../providers/providers.dart';
+// import '../data/mock_data.dart';
+import '../constants/journal_constants.dart'; // added
+import '../providers/providers.dart' hide journalProvider; // added
+import '../providers/journal_provider.dart'; // added
 import '../widgets/shared_widgets.dart';
 
 class JournalScreen extends ConsumerStatefulWidget {
@@ -18,9 +20,10 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
   Widget build(BuildContext context) {
     void toast(String msg) => ref.read(toastProvider.notifier).show(msg);
     void back() => ref.read(screenProvider.notifier).go('home');
-    final entries = _tab == 'All'
-        ? mockJournal
-        : mockJournal.where((e) => e['type'] == tabToType[_tab]).toList();
+    // final entries = _tab == 'All'
+    //     ? mockJournal
+    //     : mockJournal.where((e) => e['type'] == tabToType[_tab]).toList();
+    final journalState = ref.watch(journalProvider); // added
 
     return Column(
       children: [
@@ -90,81 +93,116 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                       bottom: 0,
                       child: Container(width: 1, color: teal100),
                     ),
-                    Column(
-                      children: entries.asMap().entries.map((entry) {
-                        final e = entry.value;
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 20),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SizedBox(
-                                width: 40,
-                                child: Column(
-                                  children: [
-                                    Container(
-                                      width: 40, height: 40,
-                                      decoration: BoxDecoration(
-                                        color: teal50,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: teal100),
-                                      ),
-                                      child: Icon(e['icon'] as IconData, size: 16, color: teal700),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(e['date'] as String,
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(fontSize: 9, color: slate400, height: 1.2)),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    border: Border.all(color: teal100),
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text((e['type'] as String).toUpperCase(),
-                                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: teal700, letterSpacing: 0.5)),
-                                          Text(e['facility'] as String,
-                                              style: const TextStyle(fontSize: 10, color: slate400)),
-                                        ],
+                    // Column(
+                    //   children: entries.asMap().entries.map((entry) {
+                    journalState.when( // added
+                      loading: () => const Center(
+                        child: CircularProgressIndicator(),
+                        ),
+
+                      error: (error, stack) => const Center(
+                        child: Text(
+                          'Failed to load journal entries',
+                        ),
+                      ),
+                        
+                      data: (entries) {
+                        final filteredEntries =
+                          _tab == 'All'
+                            ? entries
+                            : entries.where(
+                              (e) =>
+                                e.type ==
+                                tabToType[_tab],
+                            ).toList();
+
+                        return Column(
+                          children: filteredEntries.map((e) { // added
+                          // final e = entry.value;  
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 20),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                    width: 40,
+                                    child: Column(
+                                      children: [
+                                        Container(
+                                          width: 40, height: 40,
+                                          decoration: BoxDecoration(
+                                            color: teal50,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: teal100),
+                                          ),
+                                        // child: Icon(e['icon'] as IconData, size: 16, color: teal700),
+                                        child: Icon(e.icon, size: 16, color: teal700), // added
                                       ),
                                       const SizedBox(height: 4),
-                                      Text(e['title'] as String,
-                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: slate900)),
-                                      Text(e['person'] as String,
-                                          style: const TextStyle(fontSize: 11, color: slate400)),
-                                      const SizedBox(height: 8),
-                                      Text(e['note'] as String,
-                                          style: const TextStyle(fontSize: 12, color: slate700, height: 1.5)),
-                                      const SizedBox(height: 8),
-                                      Wrap(
-                                        spacing: 8,
-                                        children: (e['tags'] as List<String>)
-                                            .map((t) => TagChip(label: t))
-                                            .toList(),
-                                      ),
+                                      // Text(e['date'] as String,
+                                      Text(e.date, // added
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(fontSize: 9, color: slate400, height: 1.2)),
                                     ],
                                   ),
-                                ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        border: Border.all(color: teal100),
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              // Text((e['type'] as String).toUpperCase(),
+                                              Text(e.type.toUpperCase(), // added
+                                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: teal700, letterSpacing: 0.5)),
+                                              // Text(e['facility'] as String,
+                                              Text(e.facility, // added
+                                                style: const TextStyle(fontSize: 10, color: slate400)),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          // Text(e['title'] as String,
+                                          Text(e.title, // added
+                                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: slate900)),
+                                          // Text(e['person'] as String,
+                                          Text(e.person, // added
+                                            style: const TextStyle(fontSize: 11, color: slate400)),
+                                          const SizedBox(height: 8),
+                                          // Text(e['note'] as String,
+                                          Text(e.note, // added
+                                            style: const TextStyle(fontSize: 12, color: slate700, height: 1.5)),
+                                          const SizedBox(height: 8),
+                                          Wrap(
+                                            spacing: 8,
+                                            // children: (e['tags'] as List<String>)
+                                            children: e.tags // added
+                                              .map((t) => TagChip(label: t))
+                                              .toList(),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ],
-                ),
+                            );
+                          }
+                        )
+                        .toList(),
+                      );
+                    },
+                  ),
+                ],
+              ),
               ],
             ),
           ),
