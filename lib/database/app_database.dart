@@ -6,19 +6,21 @@ import 'tables.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [
-  Medications,
-  Reminders,
-  JournalEntries,
-  Documents,
-  Caregivers,
-  UserProfiles,
-  MetricPoints,
-  ShareTokens,
-  EmergencyAccessCodes,
-  SyncOutbox,
-  SyncMeta,
-])
+@DriftDatabase(
+  tables: [
+    Medications,
+    Reminders,
+    JournalEntries,
+    Documents,
+    Caregivers,
+    UserProfiles,
+    MetricPoints,
+    ShareTokens,
+    EmergencyAccessCodes,
+    SyncOutbox,
+    SyncMeta,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
