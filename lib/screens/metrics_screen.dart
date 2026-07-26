@@ -16,18 +16,34 @@ class MetricsScreen extends ConsumerWidget {
 
     return Column(
       children: [
-        TopBar(title: 'Health Metrics', onBack: back, rightIcon: Icons.download_outlined,
-            onRight: () => ref.read(toastProvider.notifier).show('Export needs a backend connection')),
+        TopBar(
+          title: 'Health Metrics',
+          onBack: back,
+          rightIcon: Icons.download_outlined,
+          onRight: () => ref
+              .read(toastProvider.notifier)
+              .show('Export needs a backend connection'),
+        ),
         Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-            itemCount: keys.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 16),
-            itemBuilder: (_, i) {
-              final series = metrics[keys[i]]!;
-              return _MetricCard(series: series);
-            },
-          ),
+          child: metrics.isEmpty
+              ? const Center(
+                  child: Text(
+                    'No metrics yet',
+                    style: TextStyle(color: slate400),
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+                  itemCount: keys.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 16),
+                  itemBuilder: (_, i) {
+                    final series = metrics[keys[i]];
+                    if (series == null) {
+                      return const SizedBox.shrink();
+                    }
+                    return _MetricCard(series: series);
+                  },
+                ),
         ),
       ],
     );
@@ -57,12 +73,31 @@ class _MetricCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(series.label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: slate900)),
+              Text(
+                series.label,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: slate900,
+                ),
+              ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: teal50, borderRadius: BorderRadius.circular(20)),
-                child: Text('${latest.toStringAsFixed(latest % 1 == 0 ? 0 : 1)} ${series.unit}',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: teal700)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: teal50,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${latest.toStringAsFixed(latest % 1 == 0 ? 0 : 1)} ${series.unit}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: teal700,
+                  ),
+                ),
               ),
             ],
           ),
@@ -78,11 +113,18 @@ class _MetricCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Min: ${min.toStringAsFixed(min % 1 == 0 ? 0 : 1)} ${series.unit}',
-                  style: const TextStyle(fontSize: 11, color: slate400)),
-              Text('Max: ${max.toStringAsFixed(max % 1 == 0 ? 0 : 1)} ${series.unit}',
-                  style: const TextStyle(fontSize: 11, color: slate400)),
-              Text('${series.points.length} weeks', style: const TextStyle(fontSize: 11, color: slate400)),
+              Text(
+                'Min: ${min.toStringAsFixed(min % 1 == 0 ? 0 : 1)} ${series.unit}',
+                style: const TextStyle(fontSize: 11, color: slate400),
+              ),
+              Text(
+                'Max: ${max.toStringAsFixed(max % 1 == 0 ? 0 : 1)} ${series.unit}',
+                style: const TextStyle(fontSize: 11, color: slate400),
+              ),
+              Text(
+                '${series.points.length} weeks',
+                style: const TextStyle(fontSize: 11, color: slate400),
+              ),
             ],
           ),
         ],
@@ -95,7 +137,11 @@ class _LinePainter extends CustomPainter {
   final List<MetricPoint> points;
   final double min;
   final double max;
-  const _LinePainter({required this.points, required this.min, required this.max});
+  const _LinePainter({
+    required this.points,
+    required this.min,
+    required this.max,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -109,12 +155,16 @@ class _LinePainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
-    final dotPaint = Paint()..color = teal600..style = PaintingStyle.fill;
+    final dotPaint = Paint()
+      ..color = teal600
+      ..style = PaintingStyle.fill;
 
     final path = Path();
     for (int i = 0; i < points.length; i++) {
       final x = i / (points.length - 1) * size.width;
-      final y = size.height - ((points[i].value - min) / effectiveRange) * size.height;
+      final y =
+          size.height -
+          ((points[i].value - min) / effectiveRange) * size.height;
       if (i == 0) {
         path.moveTo(x, y);
       } else {
@@ -125,7 +175,9 @@ class _LinePainter extends CustomPainter {
 
     // Draw last point dot
     final lastX = size.width;
-    final lastY = size.height - ((points.last.value - min) / effectiveRange) * size.height;
+    final lastY =
+        size.height -
+        ((points.last.value - min) / effectiveRange) * size.height;
     canvas.drawCircle(Offset(lastX, lastY), 4, dotPaint);
   }
 

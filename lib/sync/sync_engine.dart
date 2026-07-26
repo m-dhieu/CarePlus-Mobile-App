@@ -19,13 +19,17 @@ class SyncEngine {
     Connectivity? connectivity,
   }) : _db = db,
        _outbox = outbox,
-       _fs = firestore ?? FirebaseFirestore.instance,
+       _providedFs = firestore,
        _connectivity = connectivity ?? Connectivity();
 
   final AppDatabase _db;
   final OutboxService _outbox;
-  final FirebaseFirestore _fs;
+  final FirebaseFirestore? _providedFs;
   final Connectivity _connectivity;
+  FirebaseFirestore? _cachedFs;
+
+  FirebaseFirestore get _fs =>
+      _providedFs ?? (_cachedFs ??= FirebaseFirestore.instance);
 
   String? _userId;
   Timer? _debounce;

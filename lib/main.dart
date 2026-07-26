@@ -1,5 +1,7 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'firebase_options.dart';
 import 'providers/providers.dart';
 import 'screens/auth_screen.dart';
 import 'screens/onboarding_screen.dart';
@@ -12,9 +14,46 @@ import 'screens/emergency_access_screen.dart';
 import 'screens/reminders_screen.dart';
 import 'screens/caregivers_screen.dart';
 import 'screens/metrics_screen.dart';
+import 'services/platform_mode.dart';
 import 'widgets/shared_widgets.dart';
 
-void main() => runApp(const ProviderScope(child: CarePlusApp()));
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (!isSupportedPlatform) {
+    runApp(const UnsupportedPlatformApp());
+    return;
+  }
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  runApp(const ProviderScope(child: CarePlusApp()));
+}
+
+class UnsupportedPlatformApp extends StatelessWidget {
+  const UnsupportedPlatformApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              'Care+ supports Android, iOS, and Web.\n'
+              'Run with: flutter run -d chrome  (or an Android/iOS device)',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16, color: Colors.grey.shade800),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class CarePlusApp extends StatelessWidget {
   const CarePlusApp({super.key});
@@ -24,7 +63,10 @@ class CarePlusApp extends StatelessWidget {
     return MaterialApp(
       title: 'Care+',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(fontFamily: 'sans-serif', colorScheme: ColorScheme.fromSeed(seedColor: teal600)),
+      theme: ThemeData(
+        fontFamily: 'sans-serif',
+        colorScheme: ColorScheme.fromSeed(seedColor: teal600),
+      ),
       home: const AppShell(),
     );
   }
@@ -40,22 +82,22 @@ class AppShell extends ConsumerWidget {
     final screen = ref.watch(screenProvider);
     final toast = ref.watch(toastProvider);
 
+    // keep session bootstrap alive while signed in.
+    ref.watch(sessionBootstrapProvider);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
       body: SafeArea(
         child: Stack(
           children: [
             if (!authed)
-              if (!onboarded)
-                const OnboardingScreen()
-              else
-                const AuthScreen()
+              if (!onboarded) const OnboardingScreen() else const AuthScreen()
             else
               Stack(
                 children: [
-                  if (screen == 'home')   const HomeScreen(),
+                  if (screen == 'home') const HomeScreen(),
                   if (screen == 'journal') const JournalScreen(),
-                  if (screen == 'meds')   const MedsScreen(),
+                  if (screen == 'meds') const MedsScreen(),
                   if (screen == 'records') const RecordsScreen(),
                   if (screen == 'profile') const ProfileScreen(),
                   if (screen == 'emergency') const EmergencyAccessScreen(),
@@ -63,23 +105,35 @@ class AppShell extends ConsumerWidget {
                   if (screen == 'caregivers') const CaregiversScreen(),
                   if (screen == 'metrics') const MetricsScreen(),
                   const Positioned(
-                    bottom: 0, left: 0, right: 0,
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
                     child: _BottomNavBar(),
                   ),
                 ],
               ),
             if (toast != null)
               Positioned(
-                bottom: 96, left: 0, right: 0,
+                bottom: 96,
+                left: 0,
+                right: 0,
                 child: Center(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF0F172A),
                       borderRadius: BorderRadius.circular(50),
-                      boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8)],
+                      boxShadow: const [
+                        BoxShadow(color: Colors.black26, blurRadius: 8),
+                      ],
                     ),
-                    child: Text(toast, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                    child: Text(
+                      toast,
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                    ),
                   ),
                 ),
               ),

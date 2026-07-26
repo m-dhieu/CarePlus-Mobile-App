@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/providers.dart';
+import '../services/auth_errors.dart';
 import '../widgets/shared_widgets.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
@@ -14,6 +15,60 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   bool _isLogin = true;
   bool _showPw = false;
   bool _showConfirmPw = false;
+  bool _busy = false;
+  final _emailCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  final _confirmCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
+    _confirmCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final email = _emailCtrl.text.trim();
+    final password = _passwordCtrl.text;
+    if (email.isEmpty || password.isEmpty) {
+      ref.read(toastProvider.notifier).show('Email and password are required');
+      return;
+    }
+    if (!_isLogin && password != _confirmCtrl.text) {
+      ref.read(toastProvider.notifier).show('Passwords do not match');
+      return;
+    }
+
+    setState(() => _busy = true);
+    try {
+      if (_isLogin) {
+        await ref.read(authProvider.notifier).login(email, password);
+      } else {
+        await ref.read(authProvider.notifier).signUp(email, password);
+        ref
+            .read(toastProvider.notifier)
+            .show('Account created — you are signed in');
+      }
+    } catch (e) {
+      ref.read(toastProvider.notifier).show(AuthErrorMapper.message(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _social(Future<void> Function() action) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await action();
+    } catch (e) {
+      if (e is AuthCancelledException) return;
+      ref.read(toastProvider.notifier).show(AuthErrorMapper.message(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,26 +80,47 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('Care', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: teal700)),
+              const Text(
+                'Care',
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w900,
+                  color: teal700,
+                ),
+              ),
               const SizedBox(width: 2),
               const Icon(Icons.add, size: 26, color: teal500),
             ],
           ),
           const SizedBox(height: 32),
           Container(
-            decoration: BoxDecoration(color: Colors.white60, borderRadius: BorderRadius.circular(50)),
+            decoration: BoxDecoration(
+              color: Colors.white60,
+              borderRadius: BorderRadius.circular(50),
+            ),
             padding: const EdgeInsets.all(4),
             child: Row(
               children: [
-                _tabBtn('Login', _isLogin, () => setState(() => _isLogin = true)),
-                _tabBtn('Sign up', !_isLogin, () => setState(() => _isLogin = false)),
+                _tabBtn(
+                  'Login',
+                  _isLogin,
+                  () => setState(() => _isLogin = true),
+                ),
+                _tabBtn(
+                  'Sign up',
+                  !_isLogin,
+                  () => setState(() => _isLogin = false),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 24),
           Expanded(
             child: Container(
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+              ),
               padding: const EdgeInsets.all(24),
               child: SingleChildScrollView(
                 child: Column(
@@ -53,28 +129,47 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     Text(
                       _isLogin ? "You're welcome again" : 'Create your account',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: teal700, fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                        color: teal700,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 24),
 
-                    // ── Sign-up fields ──────────────────────────────────────
                     if (!_isLogin) ...[
-                      _Field(label: 'Full name', placeholder: 'Enter your full name', icon: Icons.person),
+                      const _Field(
+                        label: 'Full name',
+                        placeholder: 'Enter your full name',
+                        icon: Icons.person,
+                      ),
                       const SizedBox(height: 16),
-                      _Field(label: 'Phone number', placeholder: '+250 788 000 000', icon: Icons.phone, keyboardType: TextInputType.phone),
+                      const _Field(
+                        label: 'Phone number',
+                        placeholder: '+250 788 000 000',
+                        icon: Icons.phone,
+                        keyboardType: TextInputType.phone,
+                      ),
                       const SizedBox(height: 16),
                     ],
 
-                    // ── Shared fields ───────────────────────────────────────
-                    _Field(label: 'Email', placeholder: 'Enter your email', icon: Icons.mail, keyboardType: TextInputType.emailAddress),
+                    _Field(
+                      label: 'Email',
+                      placeholder: 'Enter your email',
+                      icon: Icons.mail,
+                      keyboardType: TextInputType.emailAddress,
+                      controller: _emailCtrl,
+                    ),
                     const SizedBox(height: 16),
                     _Field(
                       label: 'Password',
                       placeholder: 'Enter your password',
                       icon: Icons.lock,
                       obscure: !_showPw,
-                      suffixIcon: _showPw ? Icons.visibility_off : Icons.visibility,
+                      suffixIcon: _showPw
+                          ? Icons.visibility_off
+                          : Icons.visibility,
                       onSuffixTap: () => setState(() => _showPw = !_showPw),
+                      controller: _passwordCtrl,
                     ),
 
                     if (!_isLogin) ...[
@@ -84,32 +179,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         placeholder: 'Re-enter your password',
                         icon: Icons.lock,
                         obscure: !_showConfirmPw,
-                        suffixIcon: _showConfirmPw ? Icons.visibility_off : Icons.visibility,
-                        onSuffixTap: () => setState(() => _showConfirmPw = !_showConfirmPw),
-                      ),
-                    ],
-
-                    if (_isLogin) ...[
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text('Forgot password?', style: TextStyle(fontSize: 12, color: slate500)),
+                        suffixIcon: _showConfirmPw
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        onSuffixTap: () =>
+                            setState(() => _showConfirmPw = !_showConfirmPw),
+                        controller: _confirmCtrl,
                       ),
                     ],
 
                     const SizedBox(height: 28),
 
-                    // ── Primary action button ───────────────────────────────
                     ElevatedButton(
-                      onPressed: () {
-                        if (_isLogin) {
-                          ref.read(authProvider.notifier).login();
-                        } else {
-                          // After sign-up, redirect to sign-in
-                          setState(() => _isLogin = true);
-                          ref.read(toastProvider.notifier).show('Account created — please sign in');
-                        }
-                      },
+                      onPressed: _busy ? null : _submit,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: teal600,
                         foregroundColor: Colors.white,
@@ -118,100 +200,83 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         elevation: 2,
                       ),
                       child: Text(
-                        _isLogin ? 'Login' : 'Sign up',
+                        _busy
+                            ? 'Please wait…'
+                            : (_isLogin ? 'Login' : 'Sign up'),
                         style: const TextStyle(fontWeight: FontWeight.w800),
                       ),
                     ),
 
-                    // ── Divider ─────────────────────────────────────────────
-                    if (_isLogin) ...[
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          const Expanded(child: Divider(color: slate200)),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Text('or continue with', style: TextStyle(fontSize: 11, color: slate400)),
-                          ),
-                          const Expanded(child: Divider(color: slate200)),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // ── Apple Sign-In button ────────────────────────────
-                      GestureDetector(
-                        onTap: () => ref.read(toastProvider.notifier).show('Apple Sign-In needs a backend connection'),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF000000),
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _AppleLogo(),
-                              SizedBox(width: 10),
-                              Text(
-                                'Sign in with Apple',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        const Expanded(child: Divider(color: slate200)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            _isLogin ? 'or continue with' : 'or sign up with',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: slate400,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                        const Expanded(child: Divider(color: slate200)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
 
-                    // ── Apple Sign-Up (sign-up tab only) ───────────────────
-                    if (!_isLogin) ...[
-                      const SizedBox(height: 20),
-                      Row(
+                    _SocialButton(
+                      enabled: !_busy,
+                      background: Colors.white,
+                      borderColor: slate200,
+                      onTap: () => _social(
+                        () =>
+                            ref.read(authProvider.notifier).signInWithGoogle(),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Expanded(child: Divider(color: slate200)),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Text('or sign up with', style: TextStyle(fontSize: 11, color: slate400)),
+                          _GoogleLogo(),
+                          SizedBox(width: 10),
+                          Text(
+                            'Continue with Google',
+                            style: TextStyle(
+                              color: slate900,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                          const Expanded(child: Divider(color: slate200)),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      GestureDetector(
-                        onTap: () => ref.read(toastProvider.notifier).show('Apple Sign-Up needs a backend connection'),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF000000),
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _AppleLogo(),
-                              SizedBox(width: 10),
-                              Text(
-                                'Sign up with Apple',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                    ),
+                    const SizedBox(height: 12),
+                    _SocialButton(
+                      enabled: !_busy,
+                      background: const Color(0xFF000000),
+                      onTap: () => _social(
+                        () => ref.read(authProvider.notifier).signInWithApple(),
                       ),
-                    ],
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _AppleLogo(),
+                          SizedBox(width: 10),
+                          Text(
+                            'Sign up with Apple',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
 
                     const SizedBox(height: 16),
                     const Text(
-                      'Frontend preview — connect a backend to enable real accounts.',
+                      'Signed-in data syncs to Firestore and stays available offline.',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 11, color: slate400),
                     ),
@@ -235,7 +300,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           decoration: BoxDecoration(
             color: active ? teal600 : Colors.transparent,
             borderRadius: BorderRadius.circular(50),
-            boxShadow: active ? [const BoxShadow(color: Colors.black12, blurRadius: 4)] : [],
+            boxShadow: active
+                ? [const BoxShadow(color: Colors.black12, blurRadius: 4)]
+                : [],
           ),
           child: Text(
             label,
@@ -252,7 +319,99 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 }
 
-// Apple logo drawn with CustomPainter — no asset needed
+class _SocialButton extends StatelessWidget {
+  final bool enabled;
+  final Color background;
+  final Color? borderColor;
+  final VoidCallback onTap;
+  final Widget child;
+
+  const _SocialButton({
+    required this.enabled,
+    required this.background,
+    this.borderColor,
+    required this.onTap,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: enabled ? 1 : 0.6,
+      child: GestureDetector(
+        onTap: enabled ? onTap : null,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: background,
+            borderRadius: BorderRadius.circular(50),
+            border: borderColor == null
+                ? null
+                : Border.all(color: borderColor!),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+class _GoogleLogo extends StatelessWidget {
+  const _GoogleLogo();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      width: 18,
+      height: 18,
+      child: CustomPaint(painter: _GoogleLogoPainter()),
+    );
+  }
+}
+
+class _GoogleLogoPainter extends CustomPainter {
+  const _GoogleLogoPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stroke = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * 0.18
+      ..strokeCap = StrokeCap.butt;
+
+    final rect = Rect.fromLTWH(
+      size.width * 0.12,
+      size.height * 0.12,
+      size.width * 0.76,
+      size.height * 0.76,
+    );
+
+    stroke.color = const Color(0xFF4285F4);
+    canvas.drawArc(rect, -0.4, 1.6, false, stroke);
+    stroke.color = const Color(0xFF34A853);
+    canvas.drawArc(rect, 1.2, 1.1, false, stroke);
+    stroke.color = const Color(0xFFFBBC05);
+    canvas.drawArc(rect, 2.3, 0.8, false, stroke);
+    stroke.color = const Color(0xFFEA4335);
+    canvas.drawArc(rect, 3.1, 1.0, false, stroke);
+
+    final bar = Paint()..color = const Color(0xFF4285F4);
+    canvas.drawRect(
+      Rect.fromLTWH(
+        size.width * 0.48,
+        size.height * 0.42,
+        size.width * 0.40,
+        size.height * 0.16,
+      ),
+      bar,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_) => false;
+}
+
 class _AppleLogo extends StatelessWidget {
   const _AppleLogo();
 
@@ -269,13 +428,13 @@ class _AppleLogo extends StatelessWidget {
 class _AppleLogoPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white..style = PaintingStyle.fill;
+    final paint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
     final w = size.width;
     final h = size.height;
 
-    // Apple body path (simplified Apple logo shape)
     final path = Path();
-    // Right lobe
     path.moveTo(w * 0.72, h * 0.0);
     path.cubicTo(w * 0.72, h * 0.0, w * 0.44, h * 0.02, w * 0.44, h * 0.28);
     path.cubicTo(w * 0.44, h * 0.38, w * 0.50, h * 0.44, w * 0.56, h * 0.44);
@@ -285,7 +444,6 @@ class _AppleLogoPainter extends CustomPainter {
     path.cubicTo(w * 1.0, h * 0.02, w * 0.72, h * 0.0, w * 0.72, h * 0.0);
     path.close();
 
-    // Body
     final body = Path();
     body.moveTo(w * 0.18, h * 0.46);
     body.cubicTo(w * 0.06, h * 0.46, w * 0.0, h * 0.56, w * 0.0, h * 0.68);
@@ -314,6 +472,7 @@ class _Field extends StatelessWidget {
   final IconData? suffixIcon;
   final VoidCallback? onSuffixTap;
   final TextInputType keyboardType;
+  final TextEditingController? controller;
 
   const _Field({
     required this.label,
@@ -323,6 +482,7 @@ class _Field extends StatelessWidget {
     this.suffixIcon,
     this.onSuffixTap,
     this.keyboardType = TextInputType.text,
+    this.controller,
   });
 
   @override
@@ -330,7 +490,14 @@ class _Field extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: teal700)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: teal700,
+          ),
+        ),
         const SizedBox(height: 4),
         Container(
           decoration: BoxDecoration(
@@ -344,6 +511,7 @@ class _Field extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: TextField(
+                  controller: controller,
                   obscureText: obscure,
                   keyboardType: keyboardType,
                   decoration: InputDecoration(
