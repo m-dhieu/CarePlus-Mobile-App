@@ -80,6 +80,12 @@ class CareAuthRepository {
   }
 
   Future<UserCredential> signInWithGoogle() async {
+    if (kIsWeb) {
+      final userCredential = await _auth.signInWithPopup(GoogleAuthProvider());
+      await _ensureGoogleProfile(userCredential);
+      return userCredential;
+    }
+
     await _ensureGoogleSignInInitialized();
     if (!GoogleSignIn.instance.supportsAuthenticate()) {
       throw StateError('Google sign-in is not supported on this platform.');
@@ -88,15 +94,21 @@ class CareAuthRepository {
     final idToken = googleUser.authentication.idToken;
     final credential = GoogleAuthProvider.credential(idToken: idToken);
     final userCredential = await _auth.signInWithCredential(credential);
+    await _ensureGoogleProfile(userCredential, fallbackName: googleUser.displayName);
+    return userCredential;
+  }
+
+  Future<void> _ensureGoogleProfile(
+    UserCredential userCredential, {
+    String? fallbackName,
+  }) async {
     final uid = userCredential.user!.uid;
     if (!await hasUserProfile(uid)) {
       await _users.doc(uid).set(
             AppUser(
               uid: uid,
-              fullName: userCredential.user?.displayName ??
-                  googleUser.displayName ??
-                  '',
-              email: userCredential.user?.email ?? googleUser.email,
+              fullName: userCredential.user?.displayName ?? fallbackName ?? '',
+              email: userCredential.user?.email ?? '',
               role: 'patient',
               status: 'active',
             ).toNewDoc(),
@@ -106,7 +118,6 @@ class CareAuthRepository {
           .doc(uid)
           .update({'lastLogin': FieldValue.serverTimestamp()});
     }
-    return userCredential;
   }
 
   Future<void> resendVerificationEmail() async {
