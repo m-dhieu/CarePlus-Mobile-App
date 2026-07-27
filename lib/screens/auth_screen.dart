@@ -1,7 +1,12 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../features/auth/auth_providers.dart';
+import '../features/auth/validators.dart';
 import '../providers/providers.dart';
 import '../widgets/shared_widgets.dart';
+
+const _errorRed = Color(0xFFEF4444);
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -14,6 +19,113 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   bool _isLogin = true;
   bool _showPw = false;
   bool _showConfirmPw = false;
+  bool _submitting = false;
+  String? _errorText;
+
+  final _fullNameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmController = TextEditingController();
+
+  @override
+  void dispose() {
+    _fullNameController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    final emailError = validateEmail(email);
+    final passwordError = validatePassword(password);
+    if (emailError != null) {
+      setState(() => _errorText = emailError);
+      return;
+    }
+    if (passwordError != null) {
+      setState(() => _errorText = passwordError);
+      return;
+    }
+
+    if (!_isLogin) {
+      final nameError = validateFullName(_fullNameController.text);
+      if (nameError != null) {
+        setState(() => _errorText = nameError);
+        return;
+      }
+      if (password != _confirmController.text) {
+        setState(() => _errorText = 'Passwords do not match.');
+        return;
+      }
+    }
+
+    setState(() {
+      _submitting = true;
+      _errorText = null;
+    });
+    final repo = ref.read(authRepositoryProvider);
+    try {
+      if (_isLogin) {
+        await repo.loginWithEmailPassword(email: email, password: password);
+      } else {
+        await repo.registerWithEmailPassword(
+          email: email,
+          password: password,
+          fullName: _fullNameController.text.trim(),
+          phone: _phoneController.text.trim(),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() => _errorText = repo.mapAuthError(e));
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Future<void> _forgotPassword() async {
+    final email = _emailController.text.trim();
+    final emailError = validateEmail(email);
+    if (emailError != null) {
+      setState(() => _errorText = 'Enter your email above first.');
+      return;
+    }
+    setState(() {
+      _submitting = true;
+      _errorText = null;
+    });
+    final repo = ref.read(authRepositoryProvider);
+    try {
+      await repo.resetPasswordEmail(email);
+      ref.read(toastProvider.notifier).show('Password reset email sent');
+    } on FirebaseAuthException catch (e) {
+      setState(() => _errorText = repo.mapAuthError(e));
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Future<void> _googleSignIn() async {
+    setState(() {
+      _submitting = true;
+      _errorText = null;
+    });
+    final repo = ref.read(authRepositoryProvider);
+    try {
+      await repo.signInWithGoogle();
+    } on FirebaseAuthException catch (e) {
+      setState(() => _errorText = repo.mapAuthError(e));
+    } catch (e) {
+      setState(() => _errorText = 'Google sign-in is not available here.');
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,8 +148,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             padding: const EdgeInsets.all(4),
             child: Row(
               children: [
-                _tabBtn('Login', _isLogin, () => setState(() => _isLogin = true)),
-                _tabBtn('Sign up', !_isLogin, () => setState(() => _isLogin = false)),
+                _tabBtn('Login', _isLogin, () => setState(() { _isLogin = true; _errorText = null; })),
+                _tabBtn('Sign up', !_isLogin, () => setState(() { _isLogin = false; _errorText = null; })),
               ],
             ),
           ),
@@ -59,14 +171,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
                     // ── Sign-up fields ──────────────────────────────────────
                     if (!_isLogin) ...[
-                      _Field(label: 'Full name', placeholder: 'Enter your full name', icon: Icons.person),
+                      _Field(label: 'Full name', placeholder: 'Enter your full name', icon: Icons.person, controller: _fullNameController),
                       const SizedBox(height: 16),
-                      _Field(label: 'Phone number', placeholder: '+250 788 000 000', icon: Icons.phone, keyboardType: TextInputType.phone),
+                      _Field(label: 'Phone number', placeholder: '+250 788 000 000', icon: Icons.phone, keyboardType: TextInputType.phone, controller: _phoneController),
                       const SizedBox(height: 16),
                     ],
 
                     // ── Shared fields ───────────────────────────────────────
-                    _Field(label: 'Email', placeholder: 'Enter your email', icon: Icons.mail, keyboardType: TextInputType.emailAddress),
+                    _Field(label: 'Email', placeholder: 'Enter your email', icon: Icons.mail, keyboardType: TextInputType.emailAddress, controller: _emailController),
                     const SizedBox(height: 16),
                     _Field(
                       label: 'Password',
@@ -75,6 +187,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       obscure: !_showPw,
                       suffixIcon: _showPw ? Icons.visibility_off : Icons.visibility,
                       onSuffixTap: () => setState(() => _showPw = !_showPw),
+                      controller: _passwordController,
                     ),
 
                     if (!_isLogin) ...[
@@ -86,6 +199,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         obscure: !_showConfirmPw,
                         suffixIcon: _showConfirmPw ? Icons.visibility_off : Icons.visibility,
                         onSuffixTap: () => setState(() => _showConfirmPw = !_showConfirmPw),
+                        controller: _confirmController,
                       ),
                     ],
 
@@ -93,23 +207,23 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       const SizedBox(height: 8),
                       Align(
                         alignment: Alignment.centerLeft,
-                        child: Text('Forgot password?', style: TextStyle(fontSize: 12, color: slate500)),
+                        child: GestureDetector(
+                          onTap: _submitting ? null : _forgotPassword,
+                          child: Text('Forgot password?', style: TextStyle(fontSize: 12, color: slate500)),
+                        ),
                       ),
+                    ],
+
+                    if (_errorText != null) ...[
+                      const SizedBox(height: 12),
+                      Text(_errorText!, style: const TextStyle(color: _errorRed, fontSize: 12)),
                     ],
 
                     const SizedBox(height: 28),
 
                     // ── Primary action button ───────────────────────────────
                     ElevatedButton(
-                      onPressed: () {
-                        if (_isLogin) {
-                          ref.read(authProvider.notifier).login();
-                        } else {
-                          // After sign-up, redirect to sign-in
-                          setState(() => _isLogin = true);
-                          ref.read(toastProvider.notifier).show('Account created — please sign in');
-                        }
-                      },
+                      onPressed: _submitting ? null : _submit,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: teal600,
                         foregroundColor: Colors.white,
@@ -117,103 +231,57 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         shape: const StadiumBorder(),
                         elevation: 2,
                       ),
-                      child: Text(
-                        _isLogin ? 'Login' : 'Sign up',
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
+                      child: _submitting
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : Text(
+                              _isLogin ? 'Login' : 'Sign up',
+                              style: const TextStyle(fontWeight: FontWeight.w800),
+                            ),
                     ),
 
-                    // ── Divider ─────────────────────────────────────────────
-                    if (_isLogin) ...[
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          const Expanded(child: Divider(color: slate200)),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Text('or continue with', style: TextStyle(fontSize: 11, color: slate400)),
-                          ),
-                          const Expanded(child: Divider(color: slate200)),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // ── Apple Sign-In button ────────────────────────────
-                      GestureDetector(
-                        onTap: () => ref.read(toastProvider.notifier).show('Apple Sign-In needs a backend connection'),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF000000),
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _AppleLogo(),
-                              SizedBox(width: 10),
-                              Text(
-                                'Sign in with Apple',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
+                    // ── Divider + Google ────────────────────────────────────
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        const Expanded(child: Divider(color: slate200)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(_isLogin ? 'or continue with' : 'or sign up with', style: TextStyle(fontSize: 11, color: slate400)),
                         ),
-                      ),
-                    ],
-
-                    // ── Apple Sign-Up (sign-up tab only) ───────────────────
-                    if (!_isLogin) ...[
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          const Expanded(child: Divider(color: slate200)),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Text('or sign up with', style: TextStyle(fontSize: 11, color: slate400)),
-                          ),
-                          const Expanded(child: Divider(color: slate200)),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      GestureDetector(
-                        onTap: () => ref.read(toastProvider.notifier).show('Apple Sign-Up needs a backend connection'),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF000000),
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _AppleLogo(),
-                              SizedBox(width: 10),
-                              Text(
-                                'Sign up with Apple',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-
+                        const Expanded(child: Divider(color: slate200)),
+                      ],
+                    ),
                     const SizedBox(height: 16),
-                    const Text(
-                      'Frontend preview — connect a backend to enable real accounts.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 11, color: slate400),
+                    GestureDetector(
+                      onTap: _submitting ? null : _googleSignIn,
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: slate200),
+                          borderRadius: BorderRadius.circular(50),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _GoogleLogo(),
+                            SizedBox(width: 10),
+                            Text(
+                              'Continue with Google',
+                              style: TextStyle(
+                                color: slate700,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -252,54 +320,40 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 }
 
-// Apple logo drawn with CustomPainter — no asset needed
-class _AppleLogo extends StatelessWidget {
-  const _AppleLogo();
+// Google "G" mark drawn with simple colored quadrants — no asset needed
+class _GoogleLogo extends StatelessWidget {
+  const _GoogleLogo();
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: 18,
       height: 18,
-      child: CustomPaint(painter: _AppleLogoPainter()),
+      child: CustomPaint(painter: _GoogleLogoPainter()),
     );
   }
 }
 
-class _AppleLogoPainter extends CustomPainter {
+class _GoogleLogoPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white..style = PaintingStyle.fill;
-    final w = size.width;
-    final h = size.height;
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    const start = -0.4;
 
-    // Apple body path (simplified Apple logo shape)
-    final path = Path();
-    // Right lobe
-    path.moveTo(w * 0.72, h * 0.0);
-    path.cubicTo(w * 0.72, h * 0.0, w * 0.44, h * 0.02, w * 0.44, h * 0.28);
-    path.cubicTo(w * 0.44, h * 0.38, w * 0.50, h * 0.44, w * 0.56, h * 0.44);
-    path.cubicTo(w * 0.62, h * 0.44, w * 0.68, h * 0.40, w * 0.72, h * 0.36);
-    path.cubicTo(w * 0.76, h * 0.40, w * 0.82, h * 0.44, w * 0.88, h * 0.44);
-    path.cubicTo(w * 0.94, h * 0.44, w * 1.0, h * 0.38, w * 1.0, h * 0.28);
-    path.cubicTo(w * 1.0, h * 0.02, w * 0.72, h * 0.0, w * 0.72, h * 0.0);
-    path.close();
+    void arc(double startTurn, double sweepTurn, Color color) {
+      final paint = Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size.width * 0.28;
+      canvas.drawArc(rect.deflate(paint.strokeWidth / 2), startTurn * 6.28319, sweepTurn * 6.28319, false, paint);
+    }
 
-    // Body
-    final body = Path();
-    body.moveTo(w * 0.18, h * 0.46);
-    body.cubicTo(w * 0.06, h * 0.46, w * 0.0, h * 0.56, w * 0.0, h * 0.68);
-    body.cubicTo(w * 0.0, h * 0.86, w * 0.12, h * 1.0, w * 0.28, h * 1.0);
-    body.cubicTo(w * 0.36, h * 1.0, w * 0.42, h * 0.96, w * 0.50, h * 0.96);
-    body.cubicTo(w * 0.58, h * 0.96, w * 0.64, h * 1.0, w * 0.72, h * 1.0);
-    body.cubicTo(w * 0.88, h * 1.0, w * 1.0, h * 0.86, w * 1.0, h * 0.68);
-    body.cubicTo(w * 1.0, h * 0.56, w * 0.94, h * 0.46, w * 0.82, h * 0.46);
-    body.cubicTo(w * 0.74, h * 0.46, w * 0.66, h * 0.52, w * 0.50, h * 0.52);
-    body.cubicTo(w * 0.34, h * 0.52, w * 0.26, h * 0.46, w * 0.18, h * 0.46);
-    body.close();
-
-    canvas.drawPath(path, paint);
-    canvas.drawPath(body, paint);
+    arc(start, 0.24, const Color(0xFF4285F4));
+    arc(start + 0.24, 0.26, const Color(0xFF34A853));
+    arc(start + 0.5, 0.24, const Color(0xFFFBBC05));
+    arc(start + 0.74, 0.26, const Color(0xFFEA4335));
   }
 
   @override
@@ -314,6 +368,7 @@ class _Field extends StatelessWidget {
   final IconData? suffixIcon;
   final VoidCallback? onSuffixTap;
   final TextInputType keyboardType;
+  final TextEditingController? controller;
 
   const _Field({
     required this.label,
@@ -323,6 +378,7 @@ class _Field extends StatelessWidget {
     this.suffixIcon,
     this.onSuffixTap,
     this.keyboardType = TextInputType.text,
+    this.controller,
   });
 
   @override
@@ -344,6 +400,7 @@ class _Field extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: TextField(
+                  controller: controller,
                   obscureText: obscure,
                   keyboardType: keyboardType,
                   decoration: InputDecoration(
