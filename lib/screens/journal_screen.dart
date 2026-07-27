@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/mock_data.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
+// import '../data/mock_data.dart';
+import '../constants/journal_constants.dart'; // added
+import '../providers/providers.dart' hide journalProvider; // added
+import '../providers/journal_provider.dart'; // added
 import '../widgets/shared_widgets.dart';
 
 class JournalScreen extends ConsumerStatefulWidget {

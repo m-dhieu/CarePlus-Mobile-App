@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
-import '../providers/providers.dart';
+import '../providers/providers.dart' hide remindersProvider; // added
+import '../providers/reminder_provider.dart'; // added
+import '../providers/medication_provider.dart'; // added
 import '../widgets/shared_widgets.dart';
 
 class RemindersScreen extends ConsumerWidget {
@@ -9,7 +11,10 @@ class RemindersScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final reminders = ref.watch(remindersProvider);
+    // final reminders = ref.watch(remindersProvider);
+    // now remindersProvider is AsyncNotifierProvider,
+    // so it exposes loading/error/data states
+    final remindersState = ref.watch(remindersProvider); // added
     void back() => ref.read(screenProvider.notifier).go('profile');
 
     return Column(
@@ -38,6 +43,19 @@ class RemindersScreen extends ConsumerWidget {
       ],
     );
   }
+
+  //         child: reminders.isEmpty
+  //             ? const Center(child: Text('No reminders yet', style: TextStyle(color: slate400)))
+  //             : ListView.separated(
+  //                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+  //                 itemCount: reminders.length,
+  //                 separatorBuilder: (_, __) => const SizedBox(height: 12),
+  //                 itemBuilder: (_, i) => _ReminderCard(reminder: reminders[i]),
+  //               ),
+  //       ),
+  //     ],
+  //   );
+  // }
 
   void _showAddDialog(BuildContext context, WidgetRef ref) {
     final meds = ref.read(medicationsProvider);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+export 'medication_model.dart'; // added
 
 // ── Auth / Onboarding ────────────────────────────────────────────────────────
 
@@ -59,14 +60,14 @@ class EmergencyAccessCode {
 
 // ── Medications / Reminders ───────────────────────────────────────────────────
 
-class Medication {
-  final String id;
-  final String name;
-  final String dose;
-  final String condition;
-  final int refills;
-  Medication({required this.id, required this.name, required this.dose, required this.condition, required this.refills});
-}
+// class Medication {
+//   final String id;
+//   final String name;
+//   final String dose;
+//   final String condition;
+//   final int refills;
+//   Medication({required this.id, required this.name, required this.dose, required this.condition, required this.refills});
+// }
 
 class Reminder {
   final String id;
