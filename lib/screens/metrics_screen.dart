@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/providers.dart';
+import '../providers/providers.dart' hide metricsProvider; // added
+import '/providers/metric_provider.dart'; // added
 import '../models/models.dart';
 import '../widgets/shared_widgets.dart';
 
@@ -9,7 +10,8 @@ class MetricsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final metrics = ref.watch(metricsProvider);
+    // final metrics = ref.watch(metricsProvider);
+    final metricsState = ref.watch(metricsProvider); // added
     void back() => ref.read(screenProvider.notifier).go('profile');
 
     final keys = ['glucose', 'bp_sys', 'bp_dia', 'hr', 'weight', 'hba1c'];
@@ -19,15 +21,38 @@ class MetricsScreen extends ConsumerWidget {
         TopBar(title: 'Health Metrics', onBack: back, rightIcon: Icons.download_outlined,
             onRight: () => ref.read(toastProvider.notifier).show('Export needs a backend connection')),
         Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-            itemCount: keys.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 16),
-            itemBuilder: (_, i) {
-              final series = metrics[keys[i]]!;
-              return _MetricCard(series: series);
-            },
-          ),
+          // child: ListView.separated(
+          //   padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+          //   itemCount: keys.length,
+          //   separatorBuilder: (_, __) => const SizedBox(height: 16),
+          //   itemBuilder: (_, i) {
+          //     final series = metrics[keys[i]]!;
+          //     return _MetricCard(series: series);
+          //   },
+          // ),
+          child: metricsState.when( // added
+            loading: () =>
+              const Center(
+                child: CircularProgressIndicator(),
+              ),
+            error: (error, stack) =>
+              const Center(
+                child: Text(
+                  'Failed to load metrics',
+                ),
+              ),
+            data: (metrics) {
+              return ListView.separated(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 100,),
+                itemCount: keys.length,
+                separatorBuilder: (_, __) =>
+                  const SizedBox(height: 16),
+                itemBuilder: (_, i) {
+                  final series = metrics[keys[i]];
+                  if (series == null) {return const SizedBox();}
+                  return _MetricCard(series: series,); // added
+            } 
+          )
         ),
       ],
     );
