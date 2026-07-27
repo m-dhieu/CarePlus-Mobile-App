@@ -56,7 +56,7 @@ class RemindersScreen extends ConsumerWidget {
               const Text('Medication', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: teal700)),
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
-                initialValue: selected,
+                value: selected,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: slate200)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -177,7 +177,7 @@ class _ReminderCard extends ConsumerWidget {
             children: [
               Switch(
                 value: reminder.enabled,
-                activeThumbColor: teal600,
+                activeColor: teal600,
                 onChanged: (_) => ref.read(remindersProvider.notifier).toggle(reminder.id),
               ),
               GestureDetector(
