@@ -14,8 +14,8 @@ Owns: `lib/features/auth/` (`auth_repository.dart`, `auth_providers.dart`,
    `Firebase.initializeApp(...)` before `runApp` (already done).
 2. Firebase Console (project `careplusplus-b8166`): **Email/Password** and
    **Google** sign-in providers must be enabled under Authentication → Sign-in
-   method, and a Firestore database + `firestore.rules` (repo root) must be
-   deployed.
+   method. Firestore security rules are managed directly in Console, not in
+   this repo.
 3. `lib/features/auth/google_sign_in_config.dart` — `googleWebClientId` must be
    set to the real Web client ID from the Google provider setup (currently a
    placeholder). Only needed for the Google Sign-In button to work.
