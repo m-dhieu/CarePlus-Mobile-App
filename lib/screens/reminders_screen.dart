@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
-import '../providers/providers.dart';
+import '../providers/providers.dart' hide remindersProvider; // added
+import '../providers/reminder_provider.dart'; // added
+import '../providers/medication_provider.dart'; // added
 import '../widgets/shared_widgets.dart';
 
 class RemindersScreen extends ConsumerWidget {
@@ -9,7 +11,10 @@ class RemindersScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final reminders = ref.watch(remindersProvider);
+    // final reminders = ref.watch(remindersProvider);
+    // now remindersProvider is AsyncNotifierProvider,
+    // so it exposes loading/error/data states
+    final remindersState = ref.watch(remindersProvider); // added
     void back() => ref.read(screenProvider.notifier).go('profile');
 
     return Column(
@@ -21,22 +26,62 @@ class RemindersScreen extends ConsumerWidget {
           onRight: () => _showAddDialog(context, ref),
         ),
         Expanded(
-          child: reminders.isEmpty
-              ? const Center(child: Text('No reminders yet', style: TextStyle(color: slate400)))
-              : ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-                  itemCount: reminders.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (_, i) => _ReminderCard(reminder: reminders[i]),
-                ),
+          child: remindersState.when( // added
+            loading: () => const Center(
+              child: CircularProgressIndicator(),
+            ),
+            error: (error, stack) => const Center(
+              child: Text(
+                'Failed to load reminders',
+              ),
+            ),
+            data: (reminders) { // added
+              if (reminders.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'No reminders yet',
+                    style: TextStyle(
+                      color: slate400,
+                    ),
+                  ),
+                );
+              }
+              return ListView.separated(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+                itemCount: reminders.length,
+                separatorBuilder: (_, __) =>
+                  const SizedBox(height: 12),
+                itemBuilder: (_, i) =>
+                  _ReminderCard(reminder: reminders[i],)
+              );
+            },
+          ),
         ),
       ],
     );
   }
 
+  //         child: reminders.isEmpty
+  //             ? const Center(child: Text('No reminders yet', style: TextStyle(color: slate400)))
+  //             : ListView.separated(
+  //                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+  //                 itemCount: reminders.length,
+  //                 separatorBuilder: (_, __) => const SizedBox(height: 12),
+  //                 itemBuilder: (_, i) => _ReminderCard(reminder: reminders[i]),
+  //               ),
+  //       ),
+  //     ],
+  //   );
+  // }
+
   void _showAddDialog(BuildContext context, WidgetRef ref) {
-    final meds = ref.read(medicationsProvider);
-    String selected = meds.first.name;
+    // final meds = ref.read(medicationsProvider);
+    final medsState = ref.read(medicationsProvider); // added
+    if (!medsState.hasValue || medsState.value!.isEmpty) {
+      return;
+    } // added
+    final meds = medsState.value ?? []; // added
+    String selected = meds.first.name; 
     TimeOfDay time = const TimeOfDay(hour: 8, minute: 0);
     final days = List.filled(7, true);
 
@@ -112,7 +157,8 @@ class RemindersScreen extends ConsumerWidget {
               const SizedBox(height: 24),
               GestureDetector(
                 onTap: () {
-                  ref.read(remindersProvider.notifier).add(Reminder(
+                  // ref.read(remindersProvider.notifier).add(Reminder(
+                  ref.read(remindersProvider.notifier).addReminder(Reminder( // added
                     id: DateTime.now().millisecondsSinceEpoch.toString(),
                     medicationName: selected,
                     time: time,
@@ -178,10 +224,12 @@ class _ReminderCard extends ConsumerWidget {
               Switch(
                 value: reminder.enabled,
                 activeThumbColor: teal600,
-                onChanged: (_) => ref.read(remindersProvider.notifier).toggle(reminder.id),
+                // onChanged: (_) => ref.read(remindersProvider.notifier).toggle(reminder.id),
+                onChanged: (_) => ref.read(remindersProvider.notifier).toggleReminder(reminder.id), // added
               ),
               GestureDetector(
-                onTap: () => ref.read(remindersProvider.notifier).remove(reminder.id),
+                // onTap: () => ref.read(remindersProvider.notifier).remove(reminder.id),
+                onTap: () => ref.read(remindersProvider.notifier).deleteReminder(reminder.id), // added
                 child: const Icon(Icons.delete_outline, size: 18, color: slate400),
               ),
             ],

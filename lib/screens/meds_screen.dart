@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../data/mock_data.dart';
+import '../data/mock_data.dart'; // for mockMedsSchedule
+// will move later into a MedicationSchedule provider
 import '../providers/providers.dart';
+import '../providers/medication_provider.dart'; // added
 import '../widgets/shared_widgets.dart';
 
 class MedsScreen extends ConsumerWidget {
@@ -10,6 +12,10 @@ class MedsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final medicationsState = ref.watch(medicationsProvider); // added
+    // this removes direct access to mockPrescriptions
+    // screen now receives med data via Riverpod
+    // later MockMedicationDataSource to FirestoreMedicationDataSource will happen without changing screen
     void toast(String msg) => ref.read(toastProvider.notifier).show(msg);
     void back() => ref.read(screenProvider.notifier).go('home');
     return Column(
@@ -27,7 +33,7 @@ class MedsScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Adherence card
-                Container(
+                Container( // later adherence calc can get its own provider
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(colors: [teal600, teal700], begin: Alignment.topLeft, end: Alignment.bottomRight),
@@ -67,7 +73,7 @@ class MedsScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
                 const Text("Today's schedule", style: TextStyle(fontWeight: FontWeight.w800, color: slate900)),
                 const SizedBox(height: 8),
-                ...mockMedsSchedule.map((block) {
+                ...mockMedsSchedule.map((block) { // temp
                   final items = (block['items'] as List).cast<Map<String, dynamic>>();
                   final taken = items.where((i) => i['status'] != 'Upcoming').length;
                   return Container(
@@ -135,7 +141,21 @@ class MedsScreen extends ConsumerWidget {
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
                   childAspectRatio: 1.1,
-                  children: mockPrescriptions.map((p) => Container(
+                  // children: mockPrescriptions.map((p) => Container(
+                  children: medicationsState.when( // added
+                    loading: () => [
+                      const Center(
+                        child: CircularProgressIndicator(),
+                      )
+                    ],
+                    error: (error, stack) => [
+                      Center(
+                        child: Text(
+                          'Failed to load medications',
+                        ),
+                      )
+                    ],
+                    data: (medications) => medications.map((med)=>Container( // added
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       border: Border.all(color: teal100),
@@ -146,15 +166,28 @@ class MedsScreen extends ConsumerWidget {
                       children: [
                         const IconCircle(icon: Icons.medication),
                         const SizedBox(height: 8),
-                        Text(p['name']! as String, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: slate900)),
-                        Text(p['condition']! as String, style: const TextStyle(fontSize: 11, color: slate400)),
+                        // Text(p['name']! as String, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: slate900)),
+                        // Text(p['condition']! as String, style: const TextStyle(fontSize: 11, color: slate400)),
+                        Text(med.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: slate900)), // added
+                        Text(med.condition, style: const TextStyle(fontSize: 11, color: slate400)), // added
                         const Spacer(),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('${p['refills']} refills', style: const TextStyle(fontSize: 11, color: slate400)),
+                            // Text('${p['refills']} refills', style: const TextStyle(fontSize: 11, color: slate400)),
+                            Text('${med.refills} refills', style: const TextStyle(fontSize: 11, color: slate400)), // added
                             GestureDetector(
-                              onTap: () => toast('Requesting a ${p['name']} refill needs a backend connection'),
+                              // onTap: () => toast('Requesting a ${p['name']} refill needs a backend connection'),
+                              onTap: () async { // added
+                                try{
+                                  await ref
+                                    .read(medicationsProvider.notifier)
+                                    .requestRefill(med.id);
+                                  toast('${med.name} refill requested');
+                                } catch (e) {
+                                  toast('Could not request refill');
+                                }
+                              }, // added
                               child: const Text('Request', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: teal600)),
                             ),
                           ],
@@ -162,6 +195,7 @@ class MedsScreen extends ConsumerWidget {
                       ],
                     ),
                   )).toList(),
+                  ),
                 ),
               ],
             ),
