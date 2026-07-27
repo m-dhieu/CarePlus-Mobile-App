@@ -72,27 +72,27 @@ final userProfileProvider = Provider<UserProfile>((_) => UserProfile(
   ),
 ));
 
-// ── Medications ───────────────────────────────────────────────────────────────
+// // ── Medications ───────────────────────────────────────────────────────────────
 
-class MedicationsNotifier extends Notifier<List<Medication>> {
-  @override
-  List<Medication> build() => [
-    Medication(id: '1', name: 'Metformin',    dose: '500 mg',  condition: 'Type 2 Diabetes', refills: 2),
-    Medication(id: '2', name: 'Lisinopril',   dose: '10 mg',   condition: 'Hypertension',    refills: 4),
-    Medication(id: '3', name: 'Atorvastatin', dose: '20 mg',   condition: 'Cholesterol',     refills: 1),
-    Medication(id: '4', name: 'Vitamin D3',   dose: '1000 IU', condition: 'Supplement',      refills: 6),
-  ];
+// class MedicationsNotifier extends Notifier<List<Medication>> {
+//   @override
+//   List<Medication> build() => [
+//     Medication(id: '1', name: 'Metformin',    dose: '500 mg',  condition: 'Type 2 Diabetes', refills: 2),
+//     Medication(id: '2', name: 'Lisinopril',   dose: '10 mg',   condition: 'Hypertension',    refills: 4),
+//     Medication(id: '3', name: 'Atorvastatin', dose: '20 mg',   condition: 'Cholesterol',     refills: 1),
+//     Medication(id: '4', name: 'Vitamin D3',   dose: '1000 IU', condition: 'Supplement',      refills: 6),
+//   ];
 
-  void requestRefill(String id) {
-    state = [
-      for (final m in state)
-        if (m.id == id) Medication(id: m.id, name: m.name, dose: m.dose, condition: m.condition, refills: m.refills + 1)
-        else m,
-    ];
-  }
-}
+//   void requestRefill(String id) {
+//     state = [
+//       for (final m in state)
+//         if (m.id == id) Medication(id: m.id, name: m.name, dose: m.dose, condition: m.condition, refills: m.refills + 1)
+//         else m,
+//     ];
+//   }
+// }
 
-final medicationsProvider = NotifierProvider<MedicationsNotifier, List<Medication>>(MedicationsNotifier.new);
+// final medicationsProvider = NotifierProvider<MedicationsNotifier, List<Medication>>(MedicationsNotifier.new);
 
 // ── Reminders ─────────────────────────────────────────────────────────────────
 
