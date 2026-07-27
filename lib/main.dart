@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'features/auth/auth_providers.dart';
 import 'providers/providers.dart';
 import 'screens/auth_screen.dart';
+import 'screens/email_verification_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/journal_screen.dart';
@@ -41,7 +43,7 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authed = ref.watch(authProvider);
+    final authState = ref.watch(authStateProvider);
     final onboarded = ref.watch(onboardingProvider);
     final screen = ref.watch(screenProvider);
     final toast = ref.watch(toastProvider);
@@ -51,29 +53,33 @@ class AppShell extends ConsumerWidget {
       body: SafeArea(
         child: Stack(
           children: [
-            if (!authed)
-              if (!onboarded)
-                const OnboardingScreen()
-              else
-                const AuthScreen()
-            else
-              Stack(
-                children: [
-                  if (screen == 'home')   const HomeScreen(),
-                  if (screen == 'journal') const JournalScreen(),
-                  if (screen == 'meds')   const MedsScreen(),
-                  if (screen == 'records') const RecordsScreen(),
-                  if (screen == 'profile') const ProfileScreen(),
-                  if (screen == 'emergency') const EmergencyAccessScreen(),
-                  if (screen == 'reminders') const RemindersScreen(),
-                  if (screen == 'caregivers') const CaregiversScreen(),
-                  if (screen == 'metrics') const MetricsScreen(),
-                  const Positioned(
-                    bottom: 0, left: 0, right: 0,
-                    child: _BottomNavBar(),
-                  ),
-                ],
-              ),
+            authState.when(
+              data: (user) {
+                if (user == null) {
+                  return !onboarded ? const OnboardingScreen() : const AuthScreen();
+                }
+                if (!user.emailVerified) return const EmailVerificationScreen();
+                return Stack(
+                  children: [
+                    if (screen == 'home')   const HomeScreen(),
+                    if (screen == 'journal') const JournalScreen(),
+                    if (screen == 'meds')   const MedsScreen(),
+                    if (screen == 'records') const RecordsScreen(),
+                    if (screen == 'profile') const ProfileScreen(),
+                    if (screen == 'emergency') const EmergencyAccessScreen(),
+                    if (screen == 'reminders') const RemindersScreen(),
+                    if (screen == 'caregivers') const CaregiversScreen(),
+                    if (screen == 'metrics') const MetricsScreen(),
+                    const Positioned(
+                      bottom: 0, left: 0, right: 0,
+                      child: _BottomNavBar(),
+                    ),
+                  ],
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text('$e')),
+            ),
             if (toast != null)
               Positioned(
                 bottom: 96, left: 0, right: 0,
