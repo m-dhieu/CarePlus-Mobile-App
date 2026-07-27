@@ -3,7 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/mock_data.dart';
 import '../models/models.dart';
-import '../providers/providers.dart';
+import '../providers/providers.dart' hide shareTokensProvider, ocrProvider; // addded
+import '../providers/document_provider.dart'; // added
+import '../providers/share_token_provider.dart'; // added
+import '../providers/ocr_provider.dart'; // added
 import '../widgets/shared_widgets.dart';
 
 class RecordsScreen extends ConsumerWidget {
@@ -13,9 +16,12 @@ class RecordsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     void toast(String msg) => ref.read(toastProvider.notifier).show(msg);
     void back() => ref.read(screenProvider.notifier).go('home');
-    final tokens = ref.watch(shareTokensProvider);
-    final docs = ref.watch(documentsProvider);
-    final ocrResult = ref.watch(ocrProvider);
+    // final tokens = ref.watch(shareTokensProvider);
+    final tokensState = ref.watch(shareTokensProvider); // added
+    // final docs = ref.watch(documentsProvider);
+    final documentsState = ref.watch(documentsProvider); // added
+    // final ocrResult = ref.watch(ocrProvider);
+    final ocrState = ref.watch(ocrProvider); // added
 
     return Column(
       children: [
@@ -71,53 +77,106 @@ class RecordsScreen extends ConsumerWidget {
                 ),
 
                 // Active share tokens
-                if (tokens.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  const Text('Active share tokens', style: TextStyle(fontWeight: FontWeight.w800, color: slate900)),
-                  const SizedBox(height: 8),
-                  ...tokens.map((t) => Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: t.isExpired ? slate100 : teal50,
-                      border: Border.all(color: t.isExpired ? slate200 : teal100),
-                      borderRadius: BorderRadius.circular(12),
+                // if (tokens.isNotEmpty) ...[
+                tokensState.when( // added
+                  loading: () => const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(
+                      child: CircularProgressIndicator(),
                     ),
-                    child: Row(
+                  ),
+                  error: (error, stack) => const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(
+                      child: Text(
+                        'Failed to load share tokens',
+                      ),
+                    ),
+                  ),
+                  data: (tokens) {
+                    if (tokens.isEmpty) {
+                      return const SizedBox.shrink();
+                    } // added
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        const SizedBox(height: 16),
+                        const Text('Active share tokens', style: TextStyle(fontWeight: FontWeight.w800, color: slate900)),
+                        const SizedBox(height: 8),
+
+                        ...tokens.map((t) => Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: t.isExpired ? slate100 : teal50,
+                            border: Border.all(color: t.isExpired ? slate200 : teal100),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
                             children: [
-                              Text(t.token,
-                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: slate900)),
-                              Text('${t.doctorName} · ${t.isExpired ? 'Expired' : 'Active'}',
-                                  style: TextStyle(fontSize: 11, color: t.isExpired ? slate400 : teal600)),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(t.token,
+                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: slate900)),
+                                    Text('${t.doctorName} · ${t.isExpired ? 'Expired' : 'Active'}',
+                                        style: TextStyle(fontSize: 11, color: t.isExpired ? slate400 : teal600)),
+                                  ],
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  Clipboard.setData(ClipboardData(text: t.token));
+                                  toast('Token copied');
+                                },
+                                child: const Icon(Icons.copy, size: 16, color: slate400),
+                              ),
+                              const SizedBox(width: 12),
+                              GestureDetector(
+                                // onTap: () => ref.read(shareTokensProvider.notifier).revoke(t.token),
+                                onTap: () => ref
+                                  .read(
+                                    shareTokensProvider.notifier,
+                                  )
+                                  .revokeToken(
+                                    t.token,
+                                  ),
+                                child: const Icon(Icons.close, size: 16, color: slate400),
+                              ),
                             ],
                           ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            Clipboard.setData(ClipboardData(text: t.token));
-                            toast('Token copied');
-                          },
-                          child: const Icon(Icons.copy, size: 16, color: slate400),
-                        ),
-                        const SizedBox(width: 12),
-                        GestureDetector(
-                          onTap: () => ref.read(shareTokensProvider.notifier).revoke(t.token),
-                          child: const Icon(Icons.close, size: 16, color: slate400),
-                        ),
+                        )),
                       ],
-                    ),
-                  )),
-                ],
+                    );
+                  },
+                ),
 
                 const SizedBox(height: 20),
                 // OCR Lab Import
                 const Text('Import Lab Results (OCR)', style: TextStyle(fontWeight: FontWeight.w800, color: slate900)),
                 const SizedBox(height: 8),
-                _OcrImportCard(ocrResult: ocrResult),
+                // _OcrImportCard(ocrResult: ocrResult),
+                ocrState.when( // added
+                  loading: () => const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                  error: (error, stack) => const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Text(
+                        'Failed to load OCR data',
+                      ),
+                    ),
+                  ),
+                  data: (ocrResult) => _OcrImportCard(
+                    ocrResult: ocrResult,
+                  ),
+                ),
 
                 const SizedBox(height: 20),
                 const Text('Hospitals', style: TextStyle(fontWeight: FontWeight.w800, color: slate900)),
@@ -167,41 +226,64 @@ class RecordsScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
                 const Text('Documents', style: TextStyle(fontWeight: FontWeight.w800, color: slate900)),
                 const SizedBox(height: 8),
-                ...docs.map((d) => Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: teal100),
-                    borderRadius: BorderRadius.circular(16),
+                // ...docs.map((d) => Container(
+                documentsState.when( // added
+                  loading: () => const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: CircularProgressIndicator(),
+                    ),
                   ),
-                  child: Row(
-                    children: [
-                      IconCircle(icon: d.icon),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(d.name,
-                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: slate900)),
-                            Text(d.source,
-                                style: const TextStyle(fontSize: 11, color: slate400)),
-                            if (d.ocrText != null)
-                              const Text('OCR imported', style: TextStyle(fontSize: 10, color: teal600)),
-                          ],
+                  error: (error, stack) => const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Text(
+                        'Failed to load documents',
+                      ),
+                    ),
+                  ),
+                  data: (docs) => Column(
+                    children: docs
+                      .map(
+                        (d) => Container( // added
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: teal100),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            children: [
+                              IconCircle(icon: d.icon),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(d.name,
+                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: slate900)),
+                                    Text(d.source,
+                                        style: const TextStyle(fontSize: 11, color: slate400)),
+                                    if (d.ocrText != null)
+                                      const Text('OCR imported', style: TextStyle(fontSize: 10, color: teal600)),
+                                  ],
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () => toast('Downloading "${d.name}" needs a backend connection'),
+                                child: Container(
+                                  width: 36, height: 36,
+                                  decoration: BoxDecoration(border: Border.all(color: slate200), shape: BoxShape.circle),
+                                  child: const Icon(Icons.download, size: 14, color: slate500),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      GestureDetector(
-                        onTap: () => toast('Downloading "${d.name}" needs a backend connection'),
-                        child: Container(
-                          width: 36, height: 36,
-                          decoration: BoxDecoration(border: Border.all(color: slate200), shape: BoxShape.circle),
-                          child: const Icon(Icons.download, size: 14, color: slate500),
-                        ),
-                      ),
-                    ],
                   ),
-                )),
+                ),
+
                 const SizedBox(height: 8),
                 const Text('Doctor feedback', style: TextStyle(fontWeight: FontWeight.w800, color: slate900)),
                 const SizedBox(height: 8),
@@ -278,10 +360,21 @@ class RecordsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 20),
             GestureDetector(
-              onTap: () {
+              // onTap: () {
+              onTap: () async { // added
                 if (controller.text.trim().isEmpty) return;
-                final token = ref.read(shareTokensProvider.notifier).generate(controller.text.trim());
-                Navigator.pop(ctx);
+                // final token = ref.read(shareTokensProvider.notifier).generate(controller.text.trim());
+                final token = await ref // added
+                  .read(
+                    shareTokensProvider.notifier,
+                  )
+                  .generateToken(
+                    controller.text.trim(),
+                  );
+                if (ctx.mounted) {
+                  Navigator.pop(ctx);
+                } // added
+                // Navigator.pop(ctx);
                 Clipboard.setData(ClipboardData(text: token.token));
                 ref.read(toastProvider.notifier).show('Token ${token.token} copied — valid 24h');
               },
@@ -353,17 +446,24 @@ class _OcrImportCard extends ConsumerWidget {
                   Text(ocrResult!, style: const TextStyle(fontSize: 12, color: slate700, height: 1.6)),
                   const SizedBox(height: 8),
                   GestureDetector(
-                    onTap: () {
-                      ref.read(documentsProvider.notifier).addOcrDocument(
-                        MedicalDocument(
-                          id: DateTime.now().millisecondsSinceEpoch.toString(),
-                          icon: Icons.science,
-                          name: 'OCR Lab Import ${DateTime.now().day}/${DateTime.now().month}',
-                          source: 'Scanned · ${DateTime.now().day} ${_monthName(DateTime.now().month)} ${DateTime.now().year}',
-                          ocrText: ocrResult,
-                        ),
-                      );
-                      ref.read(ocrProvider.notifier).clear();
+                    // onTap: () {
+                    onTap: () async { // added
+                      // ref.read(documentsProvider.notifier).addOcrDocument(
+                      await ref // added
+                        .read(documentsProvider.notifier)
+                        .addDocument( // added
+                          MedicalDocument(
+                            id: DateTime.now().millisecondsSinceEpoch.toString(),
+                            icon: Icons.science,
+                            name: 'OCR Lab Import ${DateTime.now().day}/${DateTime.now().month}',
+                            source: 'Scanned · ${DateTime.now().day} ${_monthName(DateTime.now().month)} ${DateTime.now().year}',
+                            ocrText: ocrResult,
+                          ),
+                        );
+                      // ref.read(ocrProvider.notifier).clear();
+                      await ref // added
+                        .read(ocrProvider.notifier)
+                        .clearResult(); // added
                       ref.read(toastProvider.notifier).show('Lab results saved to documents');
                     },
                     child: Container(
@@ -385,7 +485,10 @@ class _OcrImportCard extends ConsumerWidget {
 
   Future<void> _runOcr(BuildContext context, WidgetRef ref) async {
     ref.read(_ocrLoadingProvider.notifier).set(true);
-    await ref.read(ocrProvider.notifier).processImage('simulated_path');
+    // await ref.read(ocrProvider.notifier).processImage('simulated_path');
+    await ref // added
+      .read(ocrProvider.notifier)
+      .processDocument('simulated_path'); // added
     ref.read(_ocrLoadingProvider.notifier).set(false);
   }
 
@@ -400,3 +503,4 @@ class _OcrLoadingNotifier extends Notifier<bool> {
 }
 
 final _ocrLoadingProvider = NotifierProvider<_OcrLoadingNotifier, bool>(_OcrLoadingNotifier.new);
+
