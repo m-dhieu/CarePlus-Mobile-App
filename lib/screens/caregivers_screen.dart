@@ -97,7 +97,7 @@ class CaregiversScreen extends ConsumerWidget {
               const Text('Access level', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: teal700)),
               const SizedBox(height: 6),
               DropdownButtonFormField<CaregiverRole>(
-                initialValue: role,
+                value: role,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: slate200)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -224,7 +224,7 @@ class _CaregiverCard extends ConsumerWidget {
             children: [
               Expanded(
                 child: DropdownButtonFormField<CaregiverRole>(
-                  initialValue: caregiver.role,
+                  value: caregiver.role,
                   isDense: true,
                   decoration: InputDecoration(
                     labelText: 'Access',
