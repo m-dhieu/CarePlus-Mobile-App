@@ -154,10 +154,10 @@ final mockJournal = <Map<String, dynamic>>[
   },
 ];
 
-const journalTabs = ['All', 'Visits', 'Labs', 'Prescriptions', 'Procedures'];
-const tabToType = {
-  'Visits': 'Visit',
-  'Labs': 'Lab',
-  'Prescriptions': 'Prescription',
-  'Procedures': 'Procedure',
-};
+// const journalTabs = ['All', 'Visits', 'Labs', 'Prescriptions', 'Procedures'];
+// const tabToType = {
+//   'Visits': 'Visit',
+//   'Labs': 'Lab',
+//   'Prescriptions': 'Prescription',
+//   'Procedures': 'Procedure',
+// };

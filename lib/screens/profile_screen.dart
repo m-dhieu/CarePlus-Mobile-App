@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/mock_data.dart';
-import '../features/auth/auth_providers.dart';
-import '../providers/providers.dart';
+import '../providers/providers.dart' hide userProfileProvider; // added
+import '../providers/profile_provider.dart'; // added
 import '../widgets/shared_widgets.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -12,7 +12,10 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     void toast(String msg) => ref.read(toastProvider.notifier).show(msg);
     void back() => ref.read(screenProvider.notifier).go('home');
-    final user = ref.watch(userProfileProvider);
+    // final user = ref.watch(userProfileProvider);
+    final userState = ref.watch( // added
+      userProfileProvider,
+    ); // added
 
     return Column(
       children: [
@@ -23,40 +26,50 @@ class ProfileScreen extends ConsumerWidget {
           onRight: () => toast('Settings need a backend connection'),
         ),
         Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 112),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          // child: SingleChildScrollView(
+          child: userState.when( // added
+            loading: () => const Center(
+              child: CircularProgressIndicator(),
+            ),
+            error: (error, stack) => const Center(
+              child: Text(
+                'Failed to load profile',
+              ),
+            ),
+            data: (user) => SingleChildScrollView( // added
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 112),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 // Profile header card
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [teal600, teal700], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [BoxShadow(color: teal600.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 6))],
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 56, height: 56,
-                            decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(14)),
-                            child: Center(
-                              child: Text(user.initials, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [teal600, teal700], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [BoxShadow(color: teal600.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 6))],
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 56, height: 56,
+                              decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(14)),
+                              child: Center(
+                                child: Text(user.initials, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(user.name, style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w900)),
-                              Text('${user.age} years · ${user.bloodType} · ${user.height}',
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(user.name, style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w900)),
+                                Text('${user.age} years · ${user.bloodType} · ${user.height}',
                                   style: const TextStyle(color: teal100, fontSize: 12)),
-                              Text('Patient ID · ${user.patientId}',
+                                Text('Patient ID · ${user.patientId}',
                                   style: const TextStyle(color: teal100, fontSize: 12)),
-                            ],
+                              ],
                           ),
                         ],
                       ),
@@ -220,6 +233,7 @@ class ProfileScreen extends ConsumerWidget {
               ],
             ),
           ),
+        ),
         ),
       ],
     );

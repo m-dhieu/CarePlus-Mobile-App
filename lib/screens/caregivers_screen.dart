@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
-import '../providers/providers.dart';
+import '../providers/providers.dart' hide caregiversProvider;
+import '../providers/caregiver_provider.dart';
 import '../widgets/shared_widgets.dart';
 
 class CaregiversScreen extends ConsumerWidget {
@@ -9,7 +10,8 @@ class CaregiversScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final caregivers = ref.watch(caregiversProvider);
+    // final caregivers = ref.watch(caregiversProvider);
+    final caregiversAsync = ref.watch(caregiversProvider); // added
     void back() => ref.read(screenProvider.notifier).go('profile');
 
     return Column(
@@ -20,16 +22,49 @@ class CaregiversScreen extends ConsumerWidget {
           rightIcon: Icons.person_add,
           onRight: () => _showAddDialog(context, ref),
         ),
-        Expanded(
-          child: caregivers.isEmpty
-              ? const Center(child: Text('No caregivers added', style: TextStyle(color: slate400)))
-              : ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-                  itemCount: caregivers.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (_, i) => _CaregiverCard(caregiver: caregivers[i]),
-                ),
+        // Expanded(
+        //   child: caregivers.isEmpty
+        //       ? const Center(child: Text('No caregivers added', style: TextStyle(color: slate400)))
+        //       : ListView.separated(
+        //           padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+        //           itemCount: caregivers.length,
+        //           separatorBuilder: (_, __) => const SizedBox(height: 12),
+        //           itemBuilder: (_, i) => _CaregiverCard(caregiver: caregivers[i]),
+        //         ),
+        // ),
+        Expanded( // added
+          child: caregiversAsync.when(
+            loading: () => const Center(
+              child: CircularProgressIndicator(),
+            ),
+            error: (error, _) => Center(
+              child: Text(
+                error.toString(),
+              ),
+            ),
+            data: (caregivers) {
+              if (caregivers.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'No caregivers added',
+                    style: TextStyle(
+                      color: slate400,
+                    ),
+                  ),
+                );
+              }
+              return ListView.separated(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 100,),
+                itemCount: caregivers.length,
+                separatorBuilder: (_, __) =>
+                  const SizedBox(height: 12,),
+                itemBuilder: (_, i) =>
+                  _CaregiverCard(caregiver: caregivers[i],),
+              );
+            },
+          ),
         ),
+        )
       ],
     );
   }
@@ -79,18 +114,40 @@ class CaregiversScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 20),
               GestureDetector(
-                onTap: () {
+                // onTap: () {
+                //   if (nameCtrl.text.trim().isEmpty) return;
+                //   ref.read(caregiversProvider.notifier).add(Caregiver(
+                //     id: DateTime.now().millisecondsSinceEpoch.toString(),
+                //     name: nameCtrl.text.trim(),
+                //     relation: relationCtrl.text.trim(),
+                //     phone: phoneCtrl.text.trim(),
+                //     role: role,
+                //   ));
+                //   Navigator.pop(ctx);
+                //   ref.read(toastProvider.notifier).show('Caregiver added');
+                // },
+                onTap: () async {
                   if (nameCtrl.text.trim().isEmpty) return;
-                  ref.read(caregiversProvider.notifier).add(Caregiver(
-                    id: DateTime.now().millisecondsSinceEpoch.toString(),
-                    name: nameCtrl.text.trim(),
-                    relation: relationCtrl.text.trim(),
-                    phone: phoneCtrl.text.trim(),
-                    role: role,
-                  ));
-                  Navigator.pop(ctx);
-                  ref.read(toastProvider.notifier).show('Caregiver added');
-                },
+                  await ref
+                    .read(caregiversProvider.notifier)
+                    .addCaregiver(
+                      Caregiver(
+                        id: DateTime.now()
+                          .millisecondsSinceEpoch
+                          .toString(),
+                        name: nameCtrl.text.trim(),
+                        relation: relationCtrl.text.trim(),
+                        phone: phoneCtrl.text.trim(),
+                        role: role,
+                      ),
+                    );
+                  if (ctx.mounted) {
+                    Navigator.pop(ctx);
+                  }
+                  ref
+                    .read(toastProvider.notifier)
+                    .show('Caregiver added');
+                }, // added
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 14),
@@ -183,7 +240,13 @@ class _CaregiverCard extends ConsumerWidget {
                     };
                     return DropdownMenuItem(value: r, child: Text(labels[r]!, style: const TextStyle(fontSize: 12)));
                   }).toList(),
-                  onChanged: (v) => ref.read(caregiversProvider.notifier).updateRole(caregiver.id, v!),
+                  // onChanged: (v) => ref.read(caregiversProvider.notifier).updateRole(caregiver.id, v!),
+                  onChanged: (v) async { // added
+                    if (v == null) return;
+                    await ref
+                      .read(caregiversProvider.notifier)
+                      .updateRole( caregiver.id, v,);
+                  }, // added
                 ),
               ),
               const SizedBox(width: 12),
@@ -192,13 +255,26 @@ class _CaregiverCard extends ConsumerWidget {
                   const Text('Notify', style: TextStyle(fontSize: 12, color: slate500)),
                   Switch(
                     value: caregiver.notificationsEnabled,
-                    activeColor: teal600,
-                    onChanged: (_) => ref.read(caregiversProvider.notifier).toggleNotifications(caregiver.id),
+                    activeThumbColor: teal600,
+                    // onChanged: (_) => ref.read(caregiversProvider.notifier).toggleNotifications(caregiver.id),
+                    onChanged: (_) async { // added
+                      await ref
+                        .read(caregiversProvider.notifier)
+                        .toggleNotifications(caregiver.id,);
+                    }, // added
                   ),
                 ],
               ),
               GestureDetector(
-                onTap: () => ref.read(caregiversProvider.notifier).remove(caregiver.id),
+                // onTap: () => ref.read(caregiversProvider.notifier).remove(caregiver.id),
+                onTap: () async { // added
+                  await ref
+                    .read(caregiversProvider.notifier)
+                    .deleteCaregiver(caregiver.id,);
+                  ref
+                    .read(toastProvider.notifier)
+                    .show('Caregiver removed');
+                },
                 child: const Icon(Icons.delete_outline, size: 18, color: slate400),
               ),
             ],
