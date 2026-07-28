@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/mock_data.dart';
+import '../features/auth/auth_providers.dart';
 import '../providers/providers.dart';
 import '../widgets/shared_widgets.dart';
 
@@ -196,7 +197,7 @@ class ProfileScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
                 GestureDetector(
                   onTap: () {
-                    ref.read(authProvider.notifier).logout();
+                    ref.read(authRepositoryProvider).signOut();
                     ref.read(screenProvider.notifier).go('home');
                   },
                   child: Container(

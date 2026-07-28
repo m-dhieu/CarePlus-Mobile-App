@@ -9,18 +9,6 @@ final sharedPrefsProvider = FutureProvider<SharedPreferences>(
   (_) => SharedPreferences.getInstance(),
 );
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
-
-class AuthNotifier extends Notifier<bool> {
-  @override
-  bool build() => false;
-
-  void login() => state = true;
-  void logout() => state = false;
-}
-
-final authProvider = NotifierProvider<AuthNotifier, bool>(AuthNotifier.new);
-
 // ── Onboarding ────────────────────────────────────────────────────────────────
 
 class OnboardingNotifier extends Notifier<bool> {
