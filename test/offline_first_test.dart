@@ -251,7 +251,9 @@ void main() {
       dirtyCalls = 0;
       repo = CareRepository(db, outbox, onDirty: () => dirtyCalls++);
 
-      await db.into(db.medications).insert(
+      await db
+          .into(db.medications)
+          .insert(
             MedicationsCompanion.insert(
               id: 'm1',
               userId: 'u1',
@@ -272,9 +274,9 @@ void main() {
     test('requestRefill bumps count, marks pending, enqueues outbox', () async {
       await repo.requestRefill('u1', 'm1');
 
-      final row = await (db.select(db.medications)
-            ..where((t) => t.id.equals('m1')))
-          .getSingle();
+      final row = await (db.select(
+        db.medications,
+      )..where((t) => t.id.equals('m1'))).getSingle();
       expect(row.refills, 3);
       expect(row.syncStatus, SyncStatuses.pending);
 
@@ -321,9 +323,9 @@ void main() {
       final visible = await repo.watchReminders('u1').first;
       expect(visible.where((r) => r.id == 'r2'), isEmpty);
 
-      final tombstone = await (db.select(db.reminders)
-            ..where((t) => t.id.equals('r2')))
-          .getSingle();
+      final tombstone = await (db.select(
+        db.reminders,
+      )..where((t) => t.id.equals('r2'))).getSingle();
       expect(tombstone.deletedAt, isNotNull);
       expect(tombstone.syncStatus, SyncStatuses.pending);
     });
@@ -361,37 +363,91 @@ void main() {
       await db.close();
     });
 
-    test('seedIfNeeded inserts demo data once per user', () async {
+    test('seedIfNeeded does not insert demo data (real-data mode)', () async {
       await seed.seedIfNeeded('user-a');
 
-      final meds = await (db.select(db.medications)
-            ..where((t) => t.userId.equals('user-a')))
-          .get();
-      final profile = await (db.select(db.userProfiles)
-            ..where((t) => t.userId.equals('user-a')))
-          .get();
-      final meta = await (db.select(db.syncMeta)
-            ..where((t) =>
-                t.userId.equals('user-a') &
-                t.key.equals(SyncMetaKeys.seeded)))
-          .getSingle();
-
-      expect(meds, isNotEmpty);
-      expect(profile, hasLength(1));
-      expect(meta.value, 'true');
-      expect(await outbox.pending('user-a'), isNotEmpty);
-
-      final medCount = meds.length;
-      final outboxCount = (await outbox.pending('user-a')).length;
-
-      await seed.seedIfNeeded('user-a');
       expect(
-        await (db.select(db.medications)
-              ..where((t) => t.userId.equals('user-a')))
-            .get(),
-        hasLength(medCount),
+        await (db.select(
+          db.medications,
+        )..where((t) => t.userId.equals('user-a'))).get(),
+        isEmpty,
       );
-      expect(await outbox.pending('user-a'), hasLength(outboxCount));
+      expect(
+        await (db.select(
+          db.userProfiles,
+        )..where((t) => t.userId.equals('user-a'))).get(),
+        isEmpty,
+      );
+      expect(await outbox.pending('user-a'), isEmpty);
+    });
+  });
+
+  group('CareRepository journal + documents (Drift primary)', () {
+    late AppDatabase db;
+    late OutboxService outbox;
+    late CareRepository repo;
+
+    setUp(() {
+      db = _memoryDb();
+      outbox = OutboxService(db);
+      repo = CareRepository(db, outbox, onDirty: () {});
+    });
+
+    tearDown(() async {
+      await db.close();
+    });
+
+    test('addJournal writes Drift and enqueues outbox', () async {
+      await repo.addJournal(
+        'u1',
+        JournalEntry(
+          id: 'j1',
+          type: 'Visit',
+          date: '28 JUL',
+          facility: 'Kigali Hospital',
+          title: 'Checkup',
+          person: 'Dr. A',
+          note: 'All good',
+          tags: const ['routine'],
+          icon: Icons.medical_services,
+        ),
+      );
+
+      final entries = await repo.watchJournal('u1').first;
+      expect(entries, hasLength(1));
+      expect(entries.first.title, 'Checkup');
+      expect(
+        (await outbox.pending(
+          'u1',
+        )).any((p) => p.entityType == EntityTypes.journalEntries),
+        isTrue,
+      );
+    });
+
+    test('addDocument and updateDocumentOcr stay local-first', () async {
+      await repo.addDocument(
+        'u1',
+        MedicalDocument(
+          id: 'd1',
+          icon: Icons.description,
+          name: 'Labs.pdf',
+          source: 'OCR',
+        ),
+      );
+      await repo.updateDocumentOcr('u1', 'd1', 'HbA1c: 6.8%');
+
+      final docs = await repo.watchDocuments('u1').first;
+      expect(docs, hasLength(1));
+      expect(docs.first.ocrText, 'HbA1c: 6.8%');
+      expect(await outbox.pending('u1'), isNotEmpty);
+    });
+
+    test('generateShareToken persists in Drift', () async {
+      final token = await repo.generateShareToken('u1', 'Dr. Smith');
+      final tokens = await repo.watchShareTokens('u1').first;
+      expect(tokens, hasLength(1));
+      expect(tokens.first.doctorName, 'Dr. Smith');
+      expect(tokens.first.token, token.token);
     });
   });
 }
