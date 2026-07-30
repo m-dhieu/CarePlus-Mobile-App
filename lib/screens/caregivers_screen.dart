@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
-import '../providers/providers.dart';
+import '../providers/providers.dart' hide caregiversProvider;
+import '../providers/caregiver_provider.dart';
 import '../widgets/shared_widgets.dart';
 
 class CaregiversScreen extends ConsumerWidget {
@@ -9,7 +10,8 @@ class CaregiversScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final caregivers = ref.watch(caregiversProvider);
+    // final caregivers = ref.watch(caregiversProvider);
+    final caregiversAsync = ref.watch(caregiversProvider); // added
     void back() => ref.read(screenProvider.notifier).go('profile');
 
     return Column(
@@ -36,6 +38,7 @@ class CaregiversScreen extends ConsumerWidget {
                       _CaregiverCard(caregiver: caregivers[i]),
                 ),
         ),
+        )
       ],
     );
   }
@@ -101,7 +104,7 @@ class CaregiversScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 6),
               DropdownButtonFormField<CaregiverRole>(
-                initialValue: role,
+                value: role,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -124,7 +127,19 @@ class CaregiversScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 20),
               GestureDetector(
-                onTap: () {
+                // onTap: () {
+                //   if (nameCtrl.text.trim().isEmpty) return;
+                //   ref.read(caregiversProvider.notifier).add(Caregiver(
+                //     id: DateTime.now().millisecondsSinceEpoch.toString(),
+                //     name: nameCtrl.text.trim(),
+                //     relation: relationCtrl.text.trim(),
+                //     phone: phoneCtrl.text.trim(),
+                //     role: role,
+                //   ));
+                //   Navigator.pop(ctx);
+                //   ref.read(toastProvider.notifier).show('Caregiver added');
+                // },
+                onTap: () async {
                   if (nameCtrl.text.trim().isEmpty) return;
                   ref
                       .read(caregiversProvider.notifier)
@@ -251,7 +266,7 @@ class _CaregiverCard extends ConsumerWidget {
             children: [
               Expanded(
                 child: DropdownButtonFormField<CaregiverRole>(
-                  initialValue: caregiver.role,
+                  value: caregiver.role,
                   isDense: true,
                   decoration: InputDecoration(
                     labelText: 'Access',

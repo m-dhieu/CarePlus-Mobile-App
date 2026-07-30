@@ -88,7 +88,7 @@ class RemindersScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
-                initialValue: selected,
+                value: selected,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),

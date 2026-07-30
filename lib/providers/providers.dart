@@ -335,11 +335,13 @@ final journalProvider = NotifierProvider<JournalNotifier, List<JournalEntry>>(
   JournalNotifier.new,
 );
 
-class JournalTabNotifier extends Notifier<String> {
-  @override
-  String build() => 'All';
-  void set(String tab) => state = tab;
-}
+// final journalProvider = NotifierProvider<JournalNotifier, List<JournalEntry>>(JournalNotifier.new);
+
+// class JournalTabNotifier extends Notifier<String> {
+//   @override
+//   String build() => 'All';
+//   void set(String tab) => state = tab;
+// }
 
 final journalTabProvider = NotifierProvider<JournalTabNotifier, String>(
   JournalTabNotifier.new,
@@ -460,7 +462,7 @@ class OcrNotifier extends Notifier<String?> {
   }
 }
 
-final ocrProvider = NotifierProvider<OcrNotifier, String?>(OcrNotifier.new);
+// final ocrProvider = NotifierProvider<OcrNotifier, String?>(OcrNotifier.new);
 
 // ── Caregivers ────────────────────────────────────────────────────────────────
 

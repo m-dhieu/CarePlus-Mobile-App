@@ -1,8 +1,13 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../features/auth/auth_providers.dart';
+import '../features/auth/validators.dart';
 import '../providers/providers.dart';
 import '../services/auth_errors.dart';
 import '../widgets/shared_widgets.dart';
+
+const _errorRed = Color(0xFFEF4444);
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -186,6 +191,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             setState(() => _showConfirmPw = !_showConfirmPw),
                         controller: _confirmCtrl,
                       ),
+                    ],
+
+                    if (_errorText != null) ...[
+                      const SizedBox(height: 12),
+                      Text(_errorText!, style: const TextStyle(color: _errorRed, fontSize: 12)),
                     ],
 
                     const SizedBox(height: 28),
@@ -420,12 +430,12 @@ class _AppleLogo extends StatelessWidget {
     return SizedBox(
       width: 18,
       height: 18,
-      child: CustomPaint(painter: _AppleLogoPainter()),
+      child: CustomPaint(painter: _GoogleLogoPainter()),
     );
   }
 }
 
-class _AppleLogoPainter extends CustomPainter {
+class _GoogleLogoPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
@@ -456,8 +466,10 @@ class _AppleLogoPainter extends CustomPainter {
     body.cubicTo(w * 0.34, h * 0.52, w * 0.26, h * 0.46, w * 0.18, h * 0.46);
     body.close();
 
-    canvas.drawPath(path, paint);
-    canvas.drawPath(body, paint);
+    arc(start, 0.24, const Color(0xFF4285F4));
+    arc(start + 0.24, 0.26, const Color(0xFF34A853));
+    arc(start + 0.5, 0.24, const Color(0xFFFBBC05));
+    arc(start + 0.74, 0.26, const Color(0xFFEA4335));
   }
 
   @override
