@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 
-/// Shared sync metadata columns mixed into every entity table.
+/// Shared sync metadata columns mixed into every entity table
 mixin SyncColumns on Table {
   TextColumn get userId => text()();
   DateTimeColumn get updatedAt => dateTime()();
@@ -56,6 +56,11 @@ class Documents extends Table with SyncColumns {
   TextColumn get name => text()();
   TextColumn get source => text()();
   TextColumn get ocrText => text().nullable()();
+  TextColumn get storagePath => text().nullable()();
+  TextColumn get downloadUrl => text().nullable()();
+  TextColumn get mimeType => text().nullable()();
+  IntColumn get sizeBytes => integer().nullable()();
+  DateTimeColumn get createdAt => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -70,6 +75,8 @@ class Caregivers extends Table with SyncColumns {
   TextColumn get role => text()();
   BoolColumn get notificationsEnabled =>
       boolean().withDefault(const Constant(true))();
+  TextColumn get status => text().withDefault(const Constant('pending'))();
+  DateTimeColumn get invitedAt => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -80,6 +87,7 @@ class UserProfiles extends Table with SyncColumns {
   TextColumn get id => text()();
   TextColumn get name => text()();
   TextColumn get initials => text()();
+  TextColumn get phone => text().withDefault(const Constant('—'))();
   IntColumn get age => integer()();
   TextColumn get bloodType => text()();
   TextColumn get height => text()();
@@ -115,6 +123,8 @@ class ShareTokens extends Table with SyncColumns {
   TextColumn get token => text()();
   TextColumn get doctorName => text()();
   DateTimeColumn get expiresAt => dateTime()();
+  BoolColumn get redeemed => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get redeemedAt => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -126,6 +136,8 @@ class EmergencyAccessCodes extends Table with SyncColumns {
   TextColumn get code => text()();
   DateTimeColumn get expiresAt => dateTime()();
   TextColumn get scope => text()();
+  BoolColumn get redeemed => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get redeemedAt => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

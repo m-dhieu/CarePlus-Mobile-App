@@ -245,6 +245,13 @@ class SyncEngine {
                 name: data['name'] as String? ?? '',
                 source: data['source'] as String? ?? '',
                 ocrText: Value(data['ocrText'] as String?),
+                storagePath: Value(data['storagePath'] as String?),
+                downloadUrl: Value(data['downloadUrl'] as String?),
+                mimeType: Value(data['mimeType'] as String?),
+                sizeBytes: Value((data['sizeBytes'] as num?)?.toInt()),
+                createdAt: Value(
+                  DateTime.tryParse(data['createdAt'] as String? ?? ''),
+                ),
                 updatedAt: updatedAt,
                 syncStatus: const Value(SyncStatuses.synced),
                 deletedAt: Value(deletedAt),
@@ -264,6 +271,10 @@ class SyncEngine {
                 notificationsEnabled: Value(
                   data['notificationsEnabled'] as bool? ?? true,
                 ),
+                status: Value(data['status'] as String? ?? 'pending'),
+                invitedAt: Value(
+                  DateTime.tryParse(data['invitedAt'] as String? ?? ''),
+                ),
                 updatedAt: updatedAt,
                 syncStatus: const Value(SyncStatuses.synced),
                 deletedAt: Value(deletedAt),
@@ -278,6 +289,7 @@ class SyncEngine {
                 userId: uid,
                 name: data['name'] as String? ?? '',
                 initials: data['initials'] as String? ?? '',
+                phone: Value(data['phone'] as String? ?? '—'),
                 age: (data['age'] as num?)?.toInt() ?? 0,
                 bloodType: data['bloodType'] as String? ?? '',
                 height: data['height'] as String? ?? '',
@@ -325,6 +337,10 @@ class SyncEngine {
                 expiresAt:
                     DateTime.tryParse(data['expiresAt'] as String? ?? '') ??
                     updatedAt,
+                redeemed: Value(data['redeemed'] as bool? ?? false),
+                redeemedAt: Value(
+                  DateTime.tryParse(data['redeemedAt'] as String? ?? ''),
+                ),
                 updatedAt: updatedAt,
                 syncStatus: const Value(SyncStatuses.synced),
                 deletedAt: Value(deletedAt),
@@ -342,6 +358,10 @@ class SyncEngine {
                     DateTime.tryParse(data['expiresAt'] as String? ?? '') ??
                     updatedAt,
                 scope: data['scope'] as String? ?? 'summary',
+                redeemed: Value(data['redeemed'] as bool? ?? false),
+                redeemedAt: Value(
+                  DateTime.tryParse(data['redeemedAt'] as String? ?? ''),
+                ),
                 updatedAt: updatedAt,
                 syncStatus: const Value(SyncStatuses.synced),
                 deletedAt: Value(deletedAt),

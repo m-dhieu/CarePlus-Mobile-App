@@ -2007,6 +2007,61 @@ class $DocumentsTable extends Documents
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _storagePathMeta = const VerificationMeta(
+    'storagePath',
+  );
+  @override
+  late final GeneratedColumn<String> storagePath = GeneratedColumn<String>(
+    'storage_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _downloadUrlMeta = const VerificationMeta(
+    'downloadUrl',
+  );
+  @override
+  late final GeneratedColumn<String> downloadUrl = GeneratedColumn<String>(
+    'download_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _mimeTypeMeta = const VerificationMeta(
+    'mimeType',
+  );
+  @override
+  late final GeneratedColumn<String> mimeType = GeneratedColumn<String>(
+    'mime_type',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sizeBytesMeta = const VerificationMeta(
+    'sizeBytes',
+  );
+  @override
+  late final GeneratedColumn<int> sizeBytes = GeneratedColumn<int>(
+    'size_bytes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     userId,
@@ -2018,6 +2073,11 @@ class $DocumentsTable extends Documents
     name,
     source,
     ocrText,
+    storagePath,
+    downloadUrl,
+    mimeType,
+    sizeBytes,
+    createdAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2097,6 +2157,42 @@ class $DocumentsTable extends Documents
         ocrText.isAcceptableOrUnknown(data['ocr_text']!, _ocrTextMeta),
       );
     }
+    if (data.containsKey('storage_path')) {
+      context.handle(
+        _storagePathMeta,
+        storagePath.isAcceptableOrUnknown(
+          data['storage_path']!,
+          _storagePathMeta,
+        ),
+      );
+    }
+    if (data.containsKey('download_url')) {
+      context.handle(
+        _downloadUrlMeta,
+        downloadUrl.isAcceptableOrUnknown(
+          data['download_url']!,
+          _downloadUrlMeta,
+        ),
+      );
+    }
+    if (data.containsKey('mime_type')) {
+      context.handle(
+        _mimeTypeMeta,
+        mimeType.isAcceptableOrUnknown(data['mime_type']!, _mimeTypeMeta),
+      );
+    }
+    if (data.containsKey('size_bytes')) {
+      context.handle(
+        _sizeBytesMeta,
+        sizeBytes.isAcceptableOrUnknown(data['size_bytes']!, _sizeBytesMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
     return context;
   }
 
@@ -2142,6 +2238,26 @@ class $DocumentsTable extends Documents
         DriftSqlType.string,
         data['${effectivePrefix}ocr_text'],
       ),
+      storagePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}storage_path'],
+      ),
+      downloadUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}download_url'],
+      ),
+      mimeType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mime_type'],
+      ),
+      sizeBytes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}size_bytes'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      ),
     );
   }
 
@@ -2161,6 +2277,11 @@ class DocumentRow extends DataClass implements Insertable<DocumentRow> {
   final String name;
   final String source;
   final String? ocrText;
+  final String? storagePath;
+  final String? downloadUrl;
+  final String? mimeType;
+  final int? sizeBytes;
+  final DateTime? createdAt;
   const DocumentRow({
     required this.userId,
     required this.updatedAt,
@@ -2171,6 +2292,11 @@ class DocumentRow extends DataClass implements Insertable<DocumentRow> {
     required this.name,
     required this.source,
     this.ocrText,
+    this.storagePath,
+    this.downloadUrl,
+    this.mimeType,
+    this.sizeBytes,
+    this.createdAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2187,6 +2313,21 @@ class DocumentRow extends DataClass implements Insertable<DocumentRow> {
     map['source'] = Variable<String>(source);
     if (!nullToAbsent || ocrText != null) {
       map['ocr_text'] = Variable<String>(ocrText);
+    }
+    if (!nullToAbsent || storagePath != null) {
+      map['storage_path'] = Variable<String>(storagePath);
+    }
+    if (!nullToAbsent || downloadUrl != null) {
+      map['download_url'] = Variable<String>(downloadUrl);
+    }
+    if (!nullToAbsent || mimeType != null) {
+      map['mime_type'] = Variable<String>(mimeType);
+    }
+    if (!nullToAbsent || sizeBytes != null) {
+      map['size_bytes'] = Variable<int>(sizeBytes);
+    }
+    if (!nullToAbsent || createdAt != null) {
+      map['created_at'] = Variable<DateTime>(createdAt);
     }
     return map;
   }
@@ -2206,6 +2347,21 @@ class DocumentRow extends DataClass implements Insertable<DocumentRow> {
       ocrText: ocrText == null && nullToAbsent
           ? const Value.absent()
           : Value(ocrText),
+      storagePath: storagePath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(storagePath),
+      downloadUrl: downloadUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(downloadUrl),
+      mimeType: mimeType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(mimeType),
+      sizeBytes: sizeBytes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sizeBytes),
+      createdAt: createdAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(createdAt),
     );
   }
 
@@ -2224,6 +2380,11 @@ class DocumentRow extends DataClass implements Insertable<DocumentRow> {
       name: serializer.fromJson<String>(json['name']),
       source: serializer.fromJson<String>(json['source']),
       ocrText: serializer.fromJson<String?>(json['ocrText']),
+      storagePath: serializer.fromJson<String?>(json['storagePath']),
+      downloadUrl: serializer.fromJson<String?>(json['downloadUrl']),
+      mimeType: serializer.fromJson<String?>(json['mimeType']),
+      sizeBytes: serializer.fromJson<int?>(json['sizeBytes']),
+      createdAt: serializer.fromJson<DateTime?>(json['createdAt']),
     );
   }
   @override
@@ -2239,6 +2400,11 @@ class DocumentRow extends DataClass implements Insertable<DocumentRow> {
       'name': serializer.toJson<String>(name),
       'source': serializer.toJson<String>(source),
       'ocrText': serializer.toJson<String?>(ocrText),
+      'storagePath': serializer.toJson<String?>(storagePath),
+      'downloadUrl': serializer.toJson<String?>(downloadUrl),
+      'mimeType': serializer.toJson<String?>(mimeType),
+      'sizeBytes': serializer.toJson<int?>(sizeBytes),
+      'createdAt': serializer.toJson<DateTime?>(createdAt),
     };
   }
 
@@ -2252,6 +2418,11 @@ class DocumentRow extends DataClass implements Insertable<DocumentRow> {
     String? name,
     String? source,
     Value<String?> ocrText = const Value.absent(),
+    Value<String?> storagePath = const Value.absent(),
+    Value<String?> downloadUrl = const Value.absent(),
+    Value<String?> mimeType = const Value.absent(),
+    Value<int?> sizeBytes = const Value.absent(),
+    Value<DateTime?> createdAt = const Value.absent(),
   }) => DocumentRow(
     userId: userId ?? this.userId,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -2262,6 +2433,11 @@ class DocumentRow extends DataClass implements Insertable<DocumentRow> {
     name: name ?? this.name,
     source: source ?? this.source,
     ocrText: ocrText.present ? ocrText.value : this.ocrText,
+    storagePath: storagePath.present ? storagePath.value : this.storagePath,
+    downloadUrl: downloadUrl.present ? downloadUrl.value : this.downloadUrl,
+    mimeType: mimeType.present ? mimeType.value : this.mimeType,
+    sizeBytes: sizeBytes.present ? sizeBytes.value : this.sizeBytes,
+    createdAt: createdAt.present ? createdAt.value : this.createdAt,
   );
   DocumentRow copyWithCompanion(DocumentsCompanion data) {
     return DocumentRow(
@@ -2278,6 +2454,15 @@ class DocumentRow extends DataClass implements Insertable<DocumentRow> {
       name: data.name.present ? data.name.value : this.name,
       source: data.source.present ? data.source.value : this.source,
       ocrText: data.ocrText.present ? data.ocrText.value : this.ocrText,
+      storagePath: data.storagePath.present
+          ? data.storagePath.value
+          : this.storagePath,
+      downloadUrl: data.downloadUrl.present
+          ? data.downloadUrl.value
+          : this.downloadUrl,
+      mimeType: data.mimeType.present ? data.mimeType.value : this.mimeType,
+      sizeBytes: data.sizeBytes.present ? data.sizeBytes.value : this.sizeBytes,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
 
@@ -2292,7 +2477,12 @@ class DocumentRow extends DataClass implements Insertable<DocumentRow> {
           ..write('iconCodePoint: $iconCodePoint, ')
           ..write('name: $name, ')
           ..write('source: $source, ')
-          ..write('ocrText: $ocrText')
+          ..write('ocrText: $ocrText, ')
+          ..write('storagePath: $storagePath, ')
+          ..write('downloadUrl: $downloadUrl, ')
+          ..write('mimeType: $mimeType, ')
+          ..write('sizeBytes: $sizeBytes, ')
+          ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
@@ -2308,6 +2498,11 @@ class DocumentRow extends DataClass implements Insertable<DocumentRow> {
     name,
     source,
     ocrText,
+    storagePath,
+    downloadUrl,
+    mimeType,
+    sizeBytes,
+    createdAt,
   );
   @override
   bool operator ==(Object other) =>
@@ -2321,7 +2516,12 @@ class DocumentRow extends DataClass implements Insertable<DocumentRow> {
           other.iconCodePoint == this.iconCodePoint &&
           other.name == this.name &&
           other.source == this.source &&
-          other.ocrText == this.ocrText);
+          other.ocrText == this.ocrText &&
+          other.storagePath == this.storagePath &&
+          other.downloadUrl == this.downloadUrl &&
+          other.mimeType == this.mimeType &&
+          other.sizeBytes == this.sizeBytes &&
+          other.createdAt == this.createdAt);
 }
 
 class DocumentsCompanion extends UpdateCompanion<DocumentRow> {
@@ -2334,6 +2534,11 @@ class DocumentsCompanion extends UpdateCompanion<DocumentRow> {
   final Value<String> name;
   final Value<String> source;
   final Value<String?> ocrText;
+  final Value<String?> storagePath;
+  final Value<String?> downloadUrl;
+  final Value<String?> mimeType;
+  final Value<int?> sizeBytes;
+  final Value<DateTime?> createdAt;
   final Value<int> rowid;
   const DocumentsCompanion({
     this.userId = const Value.absent(),
@@ -2345,6 +2550,11 @@ class DocumentsCompanion extends UpdateCompanion<DocumentRow> {
     this.name = const Value.absent(),
     this.source = const Value.absent(),
     this.ocrText = const Value.absent(),
+    this.storagePath = const Value.absent(),
+    this.downloadUrl = const Value.absent(),
+    this.mimeType = const Value.absent(),
+    this.sizeBytes = const Value.absent(),
+    this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   DocumentsCompanion.insert({
@@ -2357,6 +2567,11 @@ class DocumentsCompanion extends UpdateCompanion<DocumentRow> {
     required String name,
     required String source,
     this.ocrText = const Value.absent(),
+    this.storagePath = const Value.absent(),
+    this.downloadUrl = const Value.absent(),
+    this.mimeType = const Value.absent(),
+    this.sizeBytes = const Value.absent(),
+    this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : userId = Value(userId),
        updatedAt = Value(updatedAt),
@@ -2374,6 +2589,11 @@ class DocumentsCompanion extends UpdateCompanion<DocumentRow> {
     Expression<String>? name,
     Expression<String>? source,
     Expression<String>? ocrText,
+    Expression<String>? storagePath,
+    Expression<String>? downloadUrl,
+    Expression<String>? mimeType,
+    Expression<int>? sizeBytes,
+    Expression<DateTime>? createdAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2386,6 +2606,11 @@ class DocumentsCompanion extends UpdateCompanion<DocumentRow> {
       if (name != null) 'name': name,
       if (source != null) 'source': source,
       if (ocrText != null) 'ocr_text': ocrText,
+      if (storagePath != null) 'storage_path': storagePath,
+      if (downloadUrl != null) 'download_url': downloadUrl,
+      if (mimeType != null) 'mime_type': mimeType,
+      if (sizeBytes != null) 'size_bytes': sizeBytes,
+      if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2400,6 +2625,11 @@ class DocumentsCompanion extends UpdateCompanion<DocumentRow> {
     Value<String>? name,
     Value<String>? source,
     Value<String?>? ocrText,
+    Value<String?>? storagePath,
+    Value<String?>? downloadUrl,
+    Value<String?>? mimeType,
+    Value<int?>? sizeBytes,
+    Value<DateTime?>? createdAt,
     Value<int>? rowid,
   }) {
     return DocumentsCompanion(
@@ -2412,6 +2642,11 @@ class DocumentsCompanion extends UpdateCompanion<DocumentRow> {
       name: name ?? this.name,
       source: source ?? this.source,
       ocrText: ocrText ?? this.ocrText,
+      storagePath: storagePath ?? this.storagePath,
+      downloadUrl: downloadUrl ?? this.downloadUrl,
+      mimeType: mimeType ?? this.mimeType,
+      sizeBytes: sizeBytes ?? this.sizeBytes,
+      createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2446,6 +2681,21 @@ class DocumentsCompanion extends UpdateCompanion<DocumentRow> {
     if (ocrText.present) {
       map['ocr_text'] = Variable<String>(ocrText.value);
     }
+    if (storagePath.present) {
+      map['storage_path'] = Variable<String>(storagePath.value);
+    }
+    if (downloadUrl.present) {
+      map['download_url'] = Variable<String>(downloadUrl.value);
+    }
+    if (mimeType.present) {
+      map['mime_type'] = Variable<String>(mimeType.value);
+    }
+    if (sizeBytes.present) {
+      map['size_bytes'] = Variable<int>(sizeBytes.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2464,6 +2714,11 @@ class DocumentsCompanion extends UpdateCompanion<DocumentRow> {
           ..write('name: $name, ')
           ..write('source: $source, ')
           ..write('ocrText: $ocrText, ')
+          ..write('storagePath: $storagePath, ')
+          ..write('downloadUrl: $downloadUrl, ')
+          ..write('mimeType: $mimeType, ')
+          ..write('sizeBytes: $sizeBytes, ')
+          ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2580,6 +2835,27 @@ class $CaregiversTable extends Caregivers
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('pending'),
+  );
+  static const VerificationMeta _invitedAtMeta = const VerificationMeta(
+    'invitedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> invitedAt = GeneratedColumn<DateTime>(
+    'invited_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     userId,
@@ -2592,6 +2868,8 @@ class $CaregiversTable extends Caregivers
     phone,
     role,
     notificationsEnabled,
+    status,
+    invitedAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2679,6 +2957,18 @@ class $CaregiversTable extends Caregivers
         ),
       );
     }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('invited_at')) {
+      context.handle(
+        _invitedAtMeta,
+        invitedAt.isAcceptableOrUnknown(data['invited_at']!, _invitedAtMeta),
+      );
+    }
     return context;
   }
 
@@ -2728,6 +3018,14 @@ class $CaregiversTable extends Caregivers
         DriftSqlType.bool,
         data['${effectivePrefix}notifications_enabled'],
       )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      invitedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}invited_at'],
+      ),
     );
   }
 
@@ -2748,6 +3046,8 @@ class CaregiverRow extends DataClass implements Insertable<CaregiverRow> {
   final String phone;
   final String role;
   final bool notificationsEnabled;
+  final String status;
+  final DateTime? invitedAt;
   const CaregiverRow({
     required this.userId,
     required this.updatedAt,
@@ -2759,6 +3059,8 @@ class CaregiverRow extends DataClass implements Insertable<CaregiverRow> {
     required this.phone,
     required this.role,
     required this.notificationsEnabled,
+    required this.status,
+    this.invitedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2775,6 +3077,10 @@ class CaregiverRow extends DataClass implements Insertable<CaregiverRow> {
     map['phone'] = Variable<String>(phone);
     map['role'] = Variable<String>(role);
     map['notifications_enabled'] = Variable<bool>(notificationsEnabled);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || invitedAt != null) {
+      map['invited_at'] = Variable<DateTime>(invitedAt);
+    }
     return map;
   }
 
@@ -2792,6 +3098,10 @@ class CaregiverRow extends DataClass implements Insertable<CaregiverRow> {
       phone: Value(phone),
       role: Value(role),
       notificationsEnabled: Value(notificationsEnabled),
+      status: Value(status),
+      invitedAt: invitedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(invitedAt),
     );
   }
 
@@ -2813,6 +3123,8 @@ class CaregiverRow extends DataClass implements Insertable<CaregiverRow> {
       notificationsEnabled: serializer.fromJson<bool>(
         json['notificationsEnabled'],
       ),
+      status: serializer.fromJson<String>(json['status']),
+      invitedAt: serializer.fromJson<DateTime?>(json['invitedAt']),
     );
   }
   @override
@@ -2829,6 +3141,8 @@ class CaregiverRow extends DataClass implements Insertable<CaregiverRow> {
       'phone': serializer.toJson<String>(phone),
       'role': serializer.toJson<String>(role),
       'notificationsEnabled': serializer.toJson<bool>(notificationsEnabled),
+      'status': serializer.toJson<String>(status),
+      'invitedAt': serializer.toJson<DateTime?>(invitedAt),
     };
   }
 
@@ -2843,6 +3157,8 @@ class CaregiverRow extends DataClass implements Insertable<CaregiverRow> {
     String? phone,
     String? role,
     bool? notificationsEnabled,
+    String? status,
+    Value<DateTime?> invitedAt = const Value.absent(),
   }) => CaregiverRow(
     userId: userId ?? this.userId,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -2854,6 +3170,8 @@ class CaregiverRow extends DataClass implements Insertable<CaregiverRow> {
     phone: phone ?? this.phone,
     role: role ?? this.role,
     notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+    status: status ?? this.status,
+    invitedAt: invitedAt.present ? invitedAt.value : this.invitedAt,
   );
   CaregiverRow copyWithCompanion(CaregiversCompanion data) {
     return CaregiverRow(
@@ -2871,6 +3189,8 @@ class CaregiverRow extends DataClass implements Insertable<CaregiverRow> {
       notificationsEnabled: data.notificationsEnabled.present
           ? data.notificationsEnabled.value
           : this.notificationsEnabled,
+      status: data.status.present ? data.status.value : this.status,
+      invitedAt: data.invitedAt.present ? data.invitedAt.value : this.invitedAt,
     );
   }
 
@@ -2886,7 +3206,9 @@ class CaregiverRow extends DataClass implements Insertable<CaregiverRow> {
           ..write('relation: $relation, ')
           ..write('phone: $phone, ')
           ..write('role: $role, ')
-          ..write('notificationsEnabled: $notificationsEnabled')
+          ..write('notificationsEnabled: $notificationsEnabled, ')
+          ..write('status: $status, ')
+          ..write('invitedAt: $invitedAt')
           ..write(')'))
         .toString();
   }
@@ -2903,6 +3225,8 @@ class CaregiverRow extends DataClass implements Insertable<CaregiverRow> {
     phone,
     role,
     notificationsEnabled,
+    status,
+    invitedAt,
   );
   @override
   bool operator ==(Object other) =>
@@ -2917,7 +3241,9 @@ class CaregiverRow extends DataClass implements Insertable<CaregiverRow> {
           other.relation == this.relation &&
           other.phone == this.phone &&
           other.role == this.role &&
-          other.notificationsEnabled == this.notificationsEnabled);
+          other.notificationsEnabled == this.notificationsEnabled &&
+          other.status == this.status &&
+          other.invitedAt == this.invitedAt);
 }
 
 class CaregiversCompanion extends UpdateCompanion<CaregiverRow> {
@@ -2931,6 +3257,8 @@ class CaregiversCompanion extends UpdateCompanion<CaregiverRow> {
   final Value<String> phone;
   final Value<String> role;
   final Value<bool> notificationsEnabled;
+  final Value<String> status;
+  final Value<DateTime?> invitedAt;
   final Value<int> rowid;
   const CaregiversCompanion({
     this.userId = const Value.absent(),
@@ -2943,6 +3271,8 @@ class CaregiversCompanion extends UpdateCompanion<CaregiverRow> {
     this.phone = const Value.absent(),
     this.role = const Value.absent(),
     this.notificationsEnabled = const Value.absent(),
+    this.status = const Value.absent(),
+    this.invitedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CaregiversCompanion.insert({
@@ -2956,6 +3286,8 @@ class CaregiversCompanion extends UpdateCompanion<CaregiverRow> {
     required String phone,
     required String role,
     this.notificationsEnabled = const Value.absent(),
+    this.status = const Value.absent(),
+    this.invitedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : userId = Value(userId),
        updatedAt = Value(updatedAt),
@@ -2975,6 +3307,8 @@ class CaregiversCompanion extends UpdateCompanion<CaregiverRow> {
     Expression<String>? phone,
     Expression<String>? role,
     Expression<bool>? notificationsEnabled,
+    Expression<String>? status,
+    Expression<DateTime>? invitedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2989,6 +3323,8 @@ class CaregiversCompanion extends UpdateCompanion<CaregiverRow> {
       if (role != null) 'role': role,
       if (notificationsEnabled != null)
         'notifications_enabled': notificationsEnabled,
+      if (status != null) 'status': status,
+      if (invitedAt != null) 'invited_at': invitedAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3004,6 +3340,8 @@ class CaregiversCompanion extends UpdateCompanion<CaregiverRow> {
     Value<String>? phone,
     Value<String>? role,
     Value<bool>? notificationsEnabled,
+    Value<String>? status,
+    Value<DateTime?>? invitedAt,
     Value<int>? rowid,
   }) {
     return CaregiversCompanion(
@@ -3017,6 +3355,8 @@ class CaregiversCompanion extends UpdateCompanion<CaregiverRow> {
       phone: phone ?? this.phone,
       role: role ?? this.role,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+      status: status ?? this.status,
+      invitedAt: invitedAt ?? this.invitedAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3054,6 +3394,12 @@ class CaregiversCompanion extends UpdateCompanion<CaregiverRow> {
     if (notificationsEnabled.present) {
       map['notifications_enabled'] = Variable<bool>(notificationsEnabled.value);
     }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (invitedAt.present) {
+      map['invited_at'] = Variable<DateTime>(invitedAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3073,6 +3419,8 @@ class CaregiversCompanion extends UpdateCompanion<CaregiverRow> {
           ..write('phone: $phone, ')
           ..write('role: $role, ')
           ..write('notificationsEnabled: $notificationsEnabled, ')
+          ..write('status: $status, ')
+          ..write('invitedAt: $invitedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3156,6 +3504,16 @@ class $UserProfilesTable extends UserProfiles
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+  );
+  static const VerificationMeta _phoneMeta = const VerificationMeta('phone');
+  @override
+  late final GeneratedColumn<String> phone = GeneratedColumn<String>(
+    'phone',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('—'),
   );
   static const VerificationMeta _ageMeta = const VerificationMeta('age');
   @override
@@ -3278,6 +3636,7 @@ class $UserProfilesTable extends UserProfiles
     id,
     name,
     initials,
+    phone,
     age,
     bloodType,
     height,
@@ -3350,6 +3709,12 @@ class $UserProfilesTable extends UserProfiles
       );
     } else if (isInserting) {
       context.missing(_initialsMeta);
+    }
+    if (data.containsKey('phone')) {
+      context.handle(
+        _phoneMeta,
+        phone.isAcceptableOrUnknown(data['phone']!, _phoneMeta),
+      );
     }
     if (data.containsKey('age')) {
       context.handle(
@@ -3485,6 +3850,10 @@ class $UserProfilesTable extends UserProfiles
         DriftSqlType.string,
         data['${effectivePrefix}initials'],
       )!,
+      phone: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}phone'],
+      )!,
       age: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}age'],
@@ -3546,6 +3915,7 @@ class UserProfileRow extends DataClass implements Insertable<UserProfileRow> {
   final String id;
   final String name;
   final String initials;
+  final String phone;
   final int age;
   final String bloodType;
   final String height;
@@ -3565,6 +3935,7 @@ class UserProfileRow extends DataClass implements Insertable<UserProfileRow> {
     required this.id,
     required this.name,
     required this.initials,
+    required this.phone,
     required this.age,
     required this.bloodType,
     required this.height,
@@ -3589,6 +3960,7 @@ class UserProfileRow extends DataClass implements Insertable<UserProfileRow> {
     map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
     map['initials'] = Variable<String>(initials);
+    map['phone'] = Variable<String>(phone);
     map['age'] = Variable<int>(age);
     map['blood_type'] = Variable<String>(bloodType);
     map['height'] = Variable<String>(height);
@@ -3614,6 +3986,7 @@ class UserProfileRow extends DataClass implements Insertable<UserProfileRow> {
       id: Value(id),
       name: Value(name),
       initials: Value(initials),
+      phone: Value(phone),
       age: Value(age),
       bloodType: Value(bloodType),
       height: Value(height),
@@ -3641,6 +4014,7 @@ class UserProfileRow extends DataClass implements Insertable<UserProfileRow> {
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       initials: serializer.fromJson<String>(json['initials']),
+      phone: serializer.fromJson<String>(json['phone']),
       age: serializer.fromJson<int>(json['age']),
       bloodType: serializer.fromJson<String>(json['bloodType']),
       height: serializer.fromJson<String>(json['height']),
@@ -3665,6 +4039,7 @@ class UserProfileRow extends DataClass implements Insertable<UserProfileRow> {
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
       'initials': serializer.toJson<String>(initials),
+      'phone': serializer.toJson<String>(phone),
       'age': serializer.toJson<int>(age),
       'bloodType': serializer.toJson<String>(bloodType),
       'height': serializer.toJson<String>(height),
@@ -3687,6 +4062,7 @@ class UserProfileRow extends DataClass implements Insertable<UserProfileRow> {
     String? id,
     String? name,
     String? initials,
+    String? phone,
     int? age,
     String? bloodType,
     String? height,
@@ -3706,6 +4082,7 @@ class UserProfileRow extends DataClass implements Insertable<UserProfileRow> {
     id: id ?? this.id,
     name: name ?? this.name,
     initials: initials ?? this.initials,
+    phone: phone ?? this.phone,
     age: age ?? this.age,
     bloodType: bloodType ?? this.bloodType,
     height: height ?? this.height,
@@ -3729,6 +4106,7 @@ class UserProfileRow extends DataClass implements Insertable<UserProfileRow> {
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       initials: data.initials.present ? data.initials.value : this.initials,
+      phone: data.phone.present ? data.phone.value : this.phone,
       age: data.age.present ? data.age.value : this.age,
       bloodType: data.bloodType.present ? data.bloodType.value : this.bloodType,
       height: data.height.present ? data.height.value : this.height,
@@ -3759,6 +4137,7 @@ class UserProfileRow extends DataClass implements Insertable<UserProfileRow> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('initials: $initials, ')
+          ..write('phone: $phone, ')
           ..write('age: $age, ')
           ..write('bloodType: $bloodType, ')
           ..write('height: $height, ')
@@ -3783,6 +4162,7 @@ class UserProfileRow extends DataClass implements Insertable<UserProfileRow> {
     id,
     name,
     initials,
+    phone,
     age,
     bloodType,
     height,
@@ -3806,6 +4186,7 @@ class UserProfileRow extends DataClass implements Insertable<UserProfileRow> {
           other.id == this.id &&
           other.name == this.name &&
           other.initials == this.initials &&
+          other.phone == this.phone &&
           other.age == this.age &&
           other.bloodType == this.bloodType &&
           other.height == this.height &&
@@ -3827,6 +4208,7 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfileRow> {
   final Value<String> id;
   final Value<String> name;
   final Value<String> initials;
+  final Value<String> phone;
   final Value<int> age;
   final Value<String> bloodType;
   final Value<String> height;
@@ -3847,6 +4229,7 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfileRow> {
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.initials = const Value.absent(),
+    this.phone = const Value.absent(),
     this.age = const Value.absent(),
     this.bloodType = const Value.absent(),
     this.height = const Value.absent(),
@@ -3868,6 +4251,7 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfileRow> {
     required String id,
     required String name,
     required String initials,
+    this.phone = const Value.absent(),
     required int age,
     required String bloodType,
     required String height,
@@ -3904,6 +4288,7 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfileRow> {
     Expression<String>? id,
     Expression<String>? name,
     Expression<String>? initials,
+    Expression<String>? phone,
     Expression<int>? age,
     Expression<String>? bloodType,
     Expression<String>? height,
@@ -3925,6 +4310,7 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfileRow> {
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (initials != null) 'initials': initials,
+      if (phone != null) 'phone': phone,
       if (age != null) 'age': age,
       if (bloodType != null) 'blood_type': bloodType,
       if (height != null) 'height': height,
@@ -3948,6 +4334,7 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfileRow> {
     Value<String>? id,
     Value<String>? name,
     Value<String>? initials,
+    Value<String>? phone,
     Value<int>? age,
     Value<String>? bloodType,
     Value<String>? height,
@@ -3969,6 +4356,7 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfileRow> {
       id: id ?? this.id,
       name: name ?? this.name,
       initials: initials ?? this.initials,
+      phone: phone ?? this.phone,
       age: age ?? this.age,
       bloodType: bloodType ?? this.bloodType,
       height: height ?? this.height,
@@ -4007,6 +4395,9 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfileRow> {
     }
     if (initials.present) {
       map['initials'] = Variable<String>(initials.value);
+    }
+    if (phone.present) {
+      map['phone'] = Variable<String>(phone.value);
     }
     if (age.present) {
       map['age'] = Variable<int>(age.value);
@@ -4057,6 +4448,7 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfileRow> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('initials: $initials, ')
+          ..write('phone: $phone, ')
           ..write('age: $age, ')
           ..write('bloodType: $bloodType, ')
           ..write('height: $height, ')
@@ -4762,6 +5154,32 @@ class $ShareTokensTable extends ShareTokens
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _redeemedMeta = const VerificationMeta(
+    'redeemed',
+  );
+  @override
+  late final GeneratedColumn<bool> redeemed = GeneratedColumn<bool>(
+    'redeemed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("redeemed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _redeemedAtMeta = const VerificationMeta(
+    'redeemedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> redeemedAt = GeneratedColumn<DateTime>(
+    'redeemed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     userId,
@@ -4772,6 +5190,8 @@ class $ShareTokensTable extends ShareTokens
     token,
     doctorName,
     expiresAt,
+    redeemed,
+    redeemedAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4842,6 +5262,18 @@ class $ShareTokensTable extends ShareTokens
     } else if (isInserting) {
       context.missing(_expiresAtMeta);
     }
+    if (data.containsKey('redeemed')) {
+      context.handle(
+        _redeemedMeta,
+        redeemed.isAcceptableOrUnknown(data['redeemed']!, _redeemedMeta),
+      );
+    }
+    if (data.containsKey('redeemed_at')) {
+      context.handle(
+        _redeemedAtMeta,
+        redeemedAt.isAcceptableOrUnknown(data['redeemed_at']!, _redeemedAtMeta),
+      );
+    }
     return context;
   }
 
@@ -4883,6 +5315,14 @@ class $ShareTokensTable extends ShareTokens
         DriftSqlType.dateTime,
         data['${effectivePrefix}expires_at'],
       )!,
+      redeemed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}redeemed'],
+      )!,
+      redeemedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}redeemed_at'],
+      ),
     );
   }
 
@@ -4901,6 +5341,8 @@ class ShareTokenRow extends DataClass implements Insertable<ShareTokenRow> {
   final String token;
   final String doctorName;
   final DateTime expiresAt;
+  final bool redeemed;
+  final DateTime? redeemedAt;
   const ShareTokenRow({
     required this.userId,
     required this.updatedAt,
@@ -4910,6 +5352,8 @@ class ShareTokenRow extends DataClass implements Insertable<ShareTokenRow> {
     required this.token,
     required this.doctorName,
     required this.expiresAt,
+    required this.redeemed,
+    this.redeemedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4924,6 +5368,10 @@ class ShareTokenRow extends DataClass implements Insertable<ShareTokenRow> {
     map['token'] = Variable<String>(token);
     map['doctor_name'] = Variable<String>(doctorName);
     map['expires_at'] = Variable<DateTime>(expiresAt);
+    map['redeemed'] = Variable<bool>(redeemed);
+    if (!nullToAbsent || redeemedAt != null) {
+      map['redeemed_at'] = Variable<DateTime>(redeemedAt);
+    }
     return map;
   }
 
@@ -4939,6 +5387,10 @@ class ShareTokenRow extends DataClass implements Insertable<ShareTokenRow> {
       token: Value(token),
       doctorName: Value(doctorName),
       expiresAt: Value(expiresAt),
+      redeemed: Value(redeemed),
+      redeemedAt: redeemedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(redeemedAt),
     );
   }
 
@@ -4956,6 +5408,8 @@ class ShareTokenRow extends DataClass implements Insertable<ShareTokenRow> {
       token: serializer.fromJson<String>(json['token']),
       doctorName: serializer.fromJson<String>(json['doctorName']),
       expiresAt: serializer.fromJson<DateTime>(json['expiresAt']),
+      redeemed: serializer.fromJson<bool>(json['redeemed']),
+      redeemedAt: serializer.fromJson<DateTime?>(json['redeemedAt']),
     );
   }
   @override
@@ -4970,6 +5424,8 @@ class ShareTokenRow extends DataClass implements Insertable<ShareTokenRow> {
       'token': serializer.toJson<String>(token),
       'doctorName': serializer.toJson<String>(doctorName),
       'expiresAt': serializer.toJson<DateTime>(expiresAt),
+      'redeemed': serializer.toJson<bool>(redeemed),
+      'redeemedAt': serializer.toJson<DateTime?>(redeemedAt),
     };
   }
 
@@ -4982,6 +5438,8 @@ class ShareTokenRow extends DataClass implements Insertable<ShareTokenRow> {
     String? token,
     String? doctorName,
     DateTime? expiresAt,
+    bool? redeemed,
+    Value<DateTime?> redeemedAt = const Value.absent(),
   }) => ShareTokenRow(
     userId: userId ?? this.userId,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -4991,6 +5449,8 @@ class ShareTokenRow extends DataClass implements Insertable<ShareTokenRow> {
     token: token ?? this.token,
     doctorName: doctorName ?? this.doctorName,
     expiresAt: expiresAt ?? this.expiresAt,
+    redeemed: redeemed ?? this.redeemed,
+    redeemedAt: redeemedAt.present ? redeemedAt.value : this.redeemedAt,
   );
   ShareTokenRow copyWithCompanion(ShareTokensCompanion data) {
     return ShareTokenRow(
@@ -5006,6 +5466,10 @@ class ShareTokenRow extends DataClass implements Insertable<ShareTokenRow> {
           ? data.doctorName.value
           : this.doctorName,
       expiresAt: data.expiresAt.present ? data.expiresAt.value : this.expiresAt,
+      redeemed: data.redeemed.present ? data.redeemed.value : this.redeemed,
+      redeemedAt: data.redeemedAt.present
+          ? data.redeemedAt.value
+          : this.redeemedAt,
     );
   }
 
@@ -5019,7 +5483,9 @@ class ShareTokenRow extends DataClass implements Insertable<ShareTokenRow> {
           ..write('id: $id, ')
           ..write('token: $token, ')
           ..write('doctorName: $doctorName, ')
-          ..write('expiresAt: $expiresAt')
+          ..write('expiresAt: $expiresAt, ')
+          ..write('redeemed: $redeemed, ')
+          ..write('redeemedAt: $redeemedAt')
           ..write(')'))
         .toString();
   }
@@ -5034,6 +5500,8 @@ class ShareTokenRow extends DataClass implements Insertable<ShareTokenRow> {
     token,
     doctorName,
     expiresAt,
+    redeemed,
+    redeemedAt,
   );
   @override
   bool operator ==(Object other) =>
@@ -5046,7 +5514,9 @@ class ShareTokenRow extends DataClass implements Insertable<ShareTokenRow> {
           other.id == this.id &&
           other.token == this.token &&
           other.doctorName == this.doctorName &&
-          other.expiresAt == this.expiresAt);
+          other.expiresAt == this.expiresAt &&
+          other.redeemed == this.redeemed &&
+          other.redeemedAt == this.redeemedAt);
 }
 
 class ShareTokensCompanion extends UpdateCompanion<ShareTokenRow> {
@@ -5058,6 +5528,8 @@ class ShareTokensCompanion extends UpdateCompanion<ShareTokenRow> {
   final Value<String> token;
   final Value<String> doctorName;
   final Value<DateTime> expiresAt;
+  final Value<bool> redeemed;
+  final Value<DateTime?> redeemedAt;
   final Value<int> rowid;
   const ShareTokensCompanion({
     this.userId = const Value.absent(),
@@ -5068,6 +5540,8 @@ class ShareTokensCompanion extends UpdateCompanion<ShareTokenRow> {
     this.token = const Value.absent(),
     this.doctorName = const Value.absent(),
     this.expiresAt = const Value.absent(),
+    this.redeemed = const Value.absent(),
+    this.redeemedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ShareTokensCompanion.insert({
@@ -5079,6 +5553,8 @@ class ShareTokensCompanion extends UpdateCompanion<ShareTokenRow> {
     required String token,
     required String doctorName,
     required DateTime expiresAt,
+    this.redeemed = const Value.absent(),
+    this.redeemedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : userId = Value(userId),
        updatedAt = Value(updatedAt),
@@ -5095,6 +5571,8 @@ class ShareTokensCompanion extends UpdateCompanion<ShareTokenRow> {
     Expression<String>? token,
     Expression<String>? doctorName,
     Expression<DateTime>? expiresAt,
+    Expression<bool>? redeemed,
+    Expression<DateTime>? redeemedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -5106,6 +5584,8 @@ class ShareTokensCompanion extends UpdateCompanion<ShareTokenRow> {
       if (token != null) 'token': token,
       if (doctorName != null) 'doctor_name': doctorName,
       if (expiresAt != null) 'expires_at': expiresAt,
+      if (redeemed != null) 'redeemed': redeemed,
+      if (redeemedAt != null) 'redeemed_at': redeemedAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -5119,6 +5599,8 @@ class ShareTokensCompanion extends UpdateCompanion<ShareTokenRow> {
     Value<String>? token,
     Value<String>? doctorName,
     Value<DateTime>? expiresAt,
+    Value<bool>? redeemed,
+    Value<DateTime?>? redeemedAt,
     Value<int>? rowid,
   }) {
     return ShareTokensCompanion(
@@ -5130,6 +5612,8 @@ class ShareTokensCompanion extends UpdateCompanion<ShareTokenRow> {
       token: token ?? this.token,
       doctorName: doctorName ?? this.doctorName,
       expiresAt: expiresAt ?? this.expiresAt,
+      redeemed: redeemed ?? this.redeemed,
+      redeemedAt: redeemedAt ?? this.redeemedAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -5161,6 +5645,12 @@ class ShareTokensCompanion extends UpdateCompanion<ShareTokenRow> {
     if (expiresAt.present) {
       map['expires_at'] = Variable<DateTime>(expiresAt.value);
     }
+    if (redeemed.present) {
+      map['redeemed'] = Variable<bool>(redeemed.value);
+    }
+    if (redeemedAt.present) {
+      map['redeemed_at'] = Variable<DateTime>(redeemedAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -5178,6 +5668,8 @@ class ShareTokensCompanion extends UpdateCompanion<ShareTokenRow> {
           ..write('token: $token, ')
           ..write('doctorName: $doctorName, ')
           ..write('expiresAt: $expiresAt, ')
+          ..write('redeemed: $redeemed, ')
+          ..write('redeemedAt: $redeemedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -5271,6 +5763,32 @@ class $EmergencyAccessCodesTable extends EmergencyAccessCodes
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _redeemedMeta = const VerificationMeta(
+    'redeemed',
+  );
+  @override
+  late final GeneratedColumn<bool> redeemed = GeneratedColumn<bool>(
+    'redeemed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("redeemed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _redeemedAtMeta = const VerificationMeta(
+    'redeemedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> redeemedAt = GeneratedColumn<DateTime>(
+    'redeemed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     userId,
@@ -5281,6 +5799,8 @@ class $EmergencyAccessCodesTable extends EmergencyAccessCodes
     code,
     expiresAt,
     scope,
+    redeemed,
+    redeemedAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -5351,6 +5871,18 @@ class $EmergencyAccessCodesTable extends EmergencyAccessCodes
     } else if (isInserting) {
       context.missing(_scopeMeta);
     }
+    if (data.containsKey('redeemed')) {
+      context.handle(
+        _redeemedMeta,
+        redeemed.isAcceptableOrUnknown(data['redeemed']!, _redeemedMeta),
+      );
+    }
+    if (data.containsKey('redeemed_at')) {
+      context.handle(
+        _redeemedAtMeta,
+        redeemedAt.isAcceptableOrUnknown(data['redeemed_at']!, _redeemedAtMeta),
+      );
+    }
     return context;
   }
 
@@ -5392,6 +5924,14 @@ class $EmergencyAccessCodesTable extends EmergencyAccessCodes
         DriftSqlType.string,
         data['${effectivePrefix}scope'],
       )!,
+      redeemed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}redeemed'],
+      )!,
+      redeemedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}redeemed_at'],
+      ),
     );
   }
 
@@ -5411,6 +5951,8 @@ class EmergencyAccessRow extends DataClass
   final String code;
   final DateTime expiresAt;
   final String scope;
+  final bool redeemed;
+  final DateTime? redeemedAt;
   const EmergencyAccessRow({
     required this.userId,
     required this.updatedAt,
@@ -5420,6 +5962,8 @@ class EmergencyAccessRow extends DataClass
     required this.code,
     required this.expiresAt,
     required this.scope,
+    required this.redeemed,
+    this.redeemedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -5434,6 +5978,10 @@ class EmergencyAccessRow extends DataClass
     map['code'] = Variable<String>(code);
     map['expires_at'] = Variable<DateTime>(expiresAt);
     map['scope'] = Variable<String>(scope);
+    map['redeemed'] = Variable<bool>(redeemed);
+    if (!nullToAbsent || redeemedAt != null) {
+      map['redeemed_at'] = Variable<DateTime>(redeemedAt);
+    }
     return map;
   }
 
@@ -5449,6 +5997,10 @@ class EmergencyAccessRow extends DataClass
       code: Value(code),
       expiresAt: Value(expiresAt),
       scope: Value(scope),
+      redeemed: Value(redeemed),
+      redeemedAt: redeemedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(redeemedAt),
     );
   }
 
@@ -5466,6 +6018,8 @@ class EmergencyAccessRow extends DataClass
       code: serializer.fromJson<String>(json['code']),
       expiresAt: serializer.fromJson<DateTime>(json['expiresAt']),
       scope: serializer.fromJson<String>(json['scope']),
+      redeemed: serializer.fromJson<bool>(json['redeemed']),
+      redeemedAt: serializer.fromJson<DateTime?>(json['redeemedAt']),
     );
   }
   @override
@@ -5480,6 +6034,8 @@ class EmergencyAccessRow extends DataClass
       'code': serializer.toJson<String>(code),
       'expiresAt': serializer.toJson<DateTime>(expiresAt),
       'scope': serializer.toJson<String>(scope),
+      'redeemed': serializer.toJson<bool>(redeemed),
+      'redeemedAt': serializer.toJson<DateTime?>(redeemedAt),
     };
   }
 
@@ -5492,6 +6048,8 @@ class EmergencyAccessRow extends DataClass
     String? code,
     DateTime? expiresAt,
     String? scope,
+    bool? redeemed,
+    Value<DateTime?> redeemedAt = const Value.absent(),
   }) => EmergencyAccessRow(
     userId: userId ?? this.userId,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -5501,6 +6059,8 @@ class EmergencyAccessRow extends DataClass
     code: code ?? this.code,
     expiresAt: expiresAt ?? this.expiresAt,
     scope: scope ?? this.scope,
+    redeemed: redeemed ?? this.redeemed,
+    redeemedAt: redeemedAt.present ? redeemedAt.value : this.redeemedAt,
   );
   EmergencyAccessRow copyWithCompanion(EmergencyAccessCodesCompanion data) {
     return EmergencyAccessRow(
@@ -5514,6 +6074,10 @@ class EmergencyAccessRow extends DataClass
       code: data.code.present ? data.code.value : this.code,
       expiresAt: data.expiresAt.present ? data.expiresAt.value : this.expiresAt,
       scope: data.scope.present ? data.scope.value : this.scope,
+      redeemed: data.redeemed.present ? data.redeemed.value : this.redeemed,
+      redeemedAt: data.redeemedAt.present
+          ? data.redeemedAt.value
+          : this.redeemedAt,
     );
   }
 
@@ -5527,7 +6091,9 @@ class EmergencyAccessRow extends DataClass
           ..write('id: $id, ')
           ..write('code: $code, ')
           ..write('expiresAt: $expiresAt, ')
-          ..write('scope: $scope')
+          ..write('scope: $scope, ')
+          ..write('redeemed: $redeemed, ')
+          ..write('redeemedAt: $redeemedAt')
           ..write(')'))
         .toString();
   }
@@ -5542,6 +6108,8 @@ class EmergencyAccessRow extends DataClass
     code,
     expiresAt,
     scope,
+    redeemed,
+    redeemedAt,
   );
   @override
   bool operator ==(Object other) =>
@@ -5554,7 +6122,9 @@ class EmergencyAccessRow extends DataClass
           other.id == this.id &&
           other.code == this.code &&
           other.expiresAt == this.expiresAt &&
-          other.scope == this.scope);
+          other.scope == this.scope &&
+          other.redeemed == this.redeemed &&
+          other.redeemedAt == this.redeemedAt);
 }
 
 class EmergencyAccessCodesCompanion
@@ -5567,6 +6137,8 @@ class EmergencyAccessCodesCompanion
   final Value<String> code;
   final Value<DateTime> expiresAt;
   final Value<String> scope;
+  final Value<bool> redeemed;
+  final Value<DateTime?> redeemedAt;
   final Value<int> rowid;
   const EmergencyAccessCodesCompanion({
     this.userId = const Value.absent(),
@@ -5577,6 +6149,8 @@ class EmergencyAccessCodesCompanion
     this.code = const Value.absent(),
     this.expiresAt = const Value.absent(),
     this.scope = const Value.absent(),
+    this.redeemed = const Value.absent(),
+    this.redeemedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   EmergencyAccessCodesCompanion.insert({
@@ -5588,6 +6162,8 @@ class EmergencyAccessCodesCompanion
     required String code,
     required DateTime expiresAt,
     required String scope,
+    this.redeemed = const Value.absent(),
+    this.redeemedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : userId = Value(userId),
        updatedAt = Value(updatedAt),
@@ -5604,6 +6180,8 @@ class EmergencyAccessCodesCompanion
     Expression<String>? code,
     Expression<DateTime>? expiresAt,
     Expression<String>? scope,
+    Expression<bool>? redeemed,
+    Expression<DateTime>? redeemedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -5615,6 +6193,8 @@ class EmergencyAccessCodesCompanion
       if (code != null) 'code': code,
       if (expiresAt != null) 'expires_at': expiresAt,
       if (scope != null) 'scope': scope,
+      if (redeemed != null) 'redeemed': redeemed,
+      if (redeemedAt != null) 'redeemed_at': redeemedAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -5628,6 +6208,8 @@ class EmergencyAccessCodesCompanion
     Value<String>? code,
     Value<DateTime>? expiresAt,
     Value<String>? scope,
+    Value<bool>? redeemed,
+    Value<DateTime?>? redeemedAt,
     Value<int>? rowid,
   }) {
     return EmergencyAccessCodesCompanion(
@@ -5639,6 +6221,8 @@ class EmergencyAccessCodesCompanion
       code: code ?? this.code,
       expiresAt: expiresAt ?? this.expiresAt,
       scope: scope ?? this.scope,
+      redeemed: redeemed ?? this.redeemed,
+      redeemedAt: redeemedAt ?? this.redeemedAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -5670,6 +6254,12 @@ class EmergencyAccessCodesCompanion
     if (scope.present) {
       map['scope'] = Variable<String>(scope.value);
     }
+    if (redeemed.present) {
+      map['redeemed'] = Variable<bool>(redeemed.value);
+    }
+    if (redeemedAt.present) {
+      map['redeemed_at'] = Variable<DateTime>(redeemedAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -5687,6 +6277,8 @@ class EmergencyAccessCodesCompanion
           ..write('code: $code, ')
           ..write('expiresAt: $expiresAt, ')
           ..write('scope: $scope, ')
+          ..write('redeemed: $redeemed, ')
+          ..write('redeemedAt: $redeemedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -7501,6 +8093,11 @@ typedef $$DocumentsTableCreateCompanionBuilder =
       required String name,
       required String source,
       Value<String?> ocrText,
+      Value<String?> storagePath,
+      Value<String?> downloadUrl,
+      Value<String?> mimeType,
+      Value<int?> sizeBytes,
+      Value<DateTime?> createdAt,
       Value<int> rowid,
     });
 typedef $$DocumentsTableUpdateCompanionBuilder =
@@ -7514,6 +8111,11 @@ typedef $$DocumentsTableUpdateCompanionBuilder =
       Value<String> name,
       Value<String> source,
       Value<String?> ocrText,
+      Value<String?> storagePath,
+      Value<String?> downloadUrl,
+      Value<String?> mimeType,
+      Value<int?> sizeBytes,
+      Value<DateTime?> createdAt,
       Value<int> rowid,
     });
 
@@ -7568,6 +8170,31 @@ class $$DocumentsTableFilterComposer
 
   ColumnFilters<String> get ocrText => $composableBuilder(
     column: $table.ocrText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get storagePath => $composableBuilder(
+    column: $table.storagePath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get downloadUrl => $composableBuilder(
+    column: $table.downloadUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mimeType => $composableBuilder(
+    column: $table.mimeType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sizeBytes => $composableBuilder(
+    column: $table.sizeBytes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -7625,6 +8252,31 @@ class $$DocumentsTableOrderingComposer
     column: $table.ocrText,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get storagePath => $composableBuilder(
+    column: $table.storagePath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get downloadUrl => $composableBuilder(
+    column: $table.downloadUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get mimeType => $composableBuilder(
+    column: $table.mimeType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sizeBytes => $composableBuilder(
+    column: $table.sizeBytes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$DocumentsTableAnnotationComposer
@@ -7666,6 +8318,25 @@ class $$DocumentsTableAnnotationComposer
 
   GeneratedColumn<String> get ocrText =>
       $composableBuilder(column: $table.ocrText, builder: (column) => column);
+
+  GeneratedColumn<String> get storagePath => $composableBuilder(
+    column: $table.storagePath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get downloadUrl => $composableBuilder(
+    column: $table.downloadUrl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get mimeType =>
+      $composableBuilder(column: $table.mimeType, builder: (column) => column);
+
+  GeneratedColumn<int> get sizeBytes =>
+      $composableBuilder(column: $table.sizeBytes, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
 }
 
 class $$DocumentsTableTableManager
@@ -7708,6 +8379,11 @@ class $$DocumentsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String> source = const Value.absent(),
                 Value<String?> ocrText = const Value.absent(),
+                Value<String?> storagePath = const Value.absent(),
+                Value<String?> downloadUrl = const Value.absent(),
+                Value<String?> mimeType = const Value.absent(),
+                Value<int?> sizeBytes = const Value.absent(),
+                Value<DateTime?> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DocumentsCompanion(
                 userId: userId,
@@ -7719,6 +8395,11 @@ class $$DocumentsTableTableManager
                 name: name,
                 source: source,
                 ocrText: ocrText,
+                storagePath: storagePath,
+                downloadUrl: downloadUrl,
+                mimeType: mimeType,
+                sizeBytes: sizeBytes,
+                createdAt: createdAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -7732,6 +8413,11 @@ class $$DocumentsTableTableManager
                 required String name,
                 required String source,
                 Value<String?> ocrText = const Value.absent(),
+                Value<String?> storagePath = const Value.absent(),
+                Value<String?> downloadUrl = const Value.absent(),
+                Value<String?> mimeType = const Value.absent(),
+                Value<int?> sizeBytes = const Value.absent(),
+                Value<DateTime?> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DocumentsCompanion.insert(
                 userId: userId,
@@ -7743,6 +8429,11 @@ class $$DocumentsTableTableManager
                 name: name,
                 source: source,
                 ocrText: ocrText,
+                storagePath: storagePath,
+                downloadUrl: downloadUrl,
+                mimeType: mimeType,
+                sizeBytes: sizeBytes,
+                createdAt: createdAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -7782,6 +8473,8 @@ typedef $$CaregiversTableCreateCompanionBuilder =
       required String phone,
       required String role,
       Value<bool> notificationsEnabled,
+      Value<String> status,
+      Value<DateTime?> invitedAt,
       Value<int> rowid,
     });
 typedef $$CaregiversTableUpdateCompanionBuilder =
@@ -7796,6 +8489,8 @@ typedef $$CaregiversTableUpdateCompanionBuilder =
       Value<String> phone,
       Value<String> role,
       Value<bool> notificationsEnabled,
+      Value<String> status,
+      Value<DateTime?> invitedAt,
       Value<int> rowid,
     });
 
@@ -7855,6 +8550,16 @@ class $$CaregiversTableFilterComposer
 
   ColumnFilters<bool> get notificationsEnabled => $composableBuilder(
     column: $table.notificationsEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get invitedAt => $composableBuilder(
+    column: $table.invitedAt,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -7917,6 +8622,16 @@ class $$CaregiversTableOrderingComposer
     column: $table.notificationsEnabled,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get invitedAt => $composableBuilder(
+    column: $table.invitedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CaregiversTableAnnotationComposer
@@ -7961,6 +8676,12 @@ class $$CaregiversTableAnnotationComposer
     column: $table.notificationsEnabled,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get invitedAt =>
+      $composableBuilder(column: $table.invitedAt, builder: (column) => column);
 }
 
 class $$CaregiversTableTableManager
@@ -8004,6 +8725,8 @@ class $$CaregiversTableTableManager
                 Value<String> phone = const Value.absent(),
                 Value<String> role = const Value.absent(),
                 Value<bool> notificationsEnabled = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<DateTime?> invitedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CaregiversCompanion(
                 userId: userId,
@@ -8016,6 +8739,8 @@ class $$CaregiversTableTableManager
                 phone: phone,
                 role: role,
                 notificationsEnabled: notificationsEnabled,
+                status: status,
+                invitedAt: invitedAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -8030,6 +8755,8 @@ class $$CaregiversTableTableManager
                 required String phone,
                 required String role,
                 Value<bool> notificationsEnabled = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<DateTime?> invitedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CaregiversCompanion.insert(
                 userId: userId,
@@ -8042,6 +8769,8 @@ class $$CaregiversTableTableManager
                 phone: phone,
                 role: role,
                 notificationsEnabled: notificationsEnabled,
+                status: status,
+                invitedAt: invitedAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -8078,6 +8807,7 @@ typedef $$UserProfilesTableCreateCompanionBuilder =
       required String id,
       required String name,
       required String initials,
+      Value<String> phone,
       required int age,
       required String bloodType,
       required String height,
@@ -8100,6 +8830,7 @@ typedef $$UserProfilesTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> name,
       Value<String> initials,
+      Value<String> phone,
       Value<int> age,
       Value<String> bloodType,
       Value<String> height,
@@ -8155,6 +8886,11 @@ class $$UserProfilesTableFilterComposer
 
   ColumnFilters<String> get initials => $composableBuilder(
     column: $table.initials,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get phone => $composableBuilder(
+    column: $table.phone,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8258,6 +8994,11 @@ class $$UserProfilesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get phone => $composableBuilder(
+    column: $table.phone,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get age => $composableBuilder(
     column: $table.age,
     builder: (column) => ColumnOrderings(column),
@@ -8346,6 +9087,9 @@ class $$UserProfilesTableAnnotationComposer
   GeneratedColumn<String> get initials =>
       $composableBuilder(column: $table.initials, builder: (column) => column);
 
+  GeneratedColumn<String> get phone =>
+      $composableBuilder(column: $table.phone, builder: (column) => column);
+
   GeneratedColumn<int> get age =>
       $composableBuilder(column: $table.age, builder: (column) => column);
 
@@ -8424,6 +9168,7 @@ class $$UserProfilesTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String> initials = const Value.absent(),
+                Value<String> phone = const Value.absent(),
                 Value<int> age = const Value.absent(),
                 Value<String> bloodType = const Value.absent(),
                 Value<String> height = const Value.absent(),
@@ -8444,6 +9189,7 @@ class $$UserProfilesTableTableManager
                 id: id,
                 name: name,
                 initials: initials,
+                phone: phone,
                 age: age,
                 bloodType: bloodType,
                 height: height,
@@ -8466,6 +9212,7 @@ class $$UserProfilesTableTableManager
                 required String id,
                 required String name,
                 required String initials,
+                Value<String> phone = const Value.absent(),
                 required int age,
                 required String bloodType,
                 required String height,
@@ -8486,6 +9233,7 @@ class $$UserProfilesTableTableManager
                 id: id,
                 name: name,
                 initials: initials,
+                phone: phone,
                 age: age,
                 bloodType: bloodType,
                 height: height,
@@ -8831,6 +9579,8 @@ typedef $$ShareTokensTableCreateCompanionBuilder =
       required String token,
       required String doctorName,
       required DateTime expiresAt,
+      Value<bool> redeemed,
+      Value<DateTime?> redeemedAt,
       Value<int> rowid,
     });
 typedef $$ShareTokensTableUpdateCompanionBuilder =
@@ -8843,6 +9593,8 @@ typedef $$ShareTokensTableUpdateCompanionBuilder =
       Value<String> token,
       Value<String> doctorName,
       Value<DateTime> expiresAt,
+      Value<bool> redeemed,
+      Value<DateTime?> redeemedAt,
       Value<int> rowid,
     });
 
@@ -8892,6 +9644,16 @@ class $$ShareTokensTableFilterComposer
 
   ColumnFilters<DateTime> get expiresAt => $composableBuilder(
     column: $table.expiresAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get redeemed => $composableBuilder(
+    column: $table.redeemed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get redeemedAt => $composableBuilder(
+    column: $table.redeemedAt,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -8944,6 +9706,16 @@ class $$ShareTokensTableOrderingComposer
     column: $table.expiresAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get redeemed => $composableBuilder(
+    column: $table.redeemed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get redeemedAt => $composableBuilder(
+    column: $table.redeemedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ShareTokensTableAnnotationComposer
@@ -8982,6 +9754,14 @@ class $$ShareTokensTableAnnotationComposer
 
   GeneratedColumn<DateTime> get expiresAt =>
       $composableBuilder(column: $table.expiresAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get redeemed =>
+      $composableBuilder(column: $table.redeemed, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get redeemedAt => $composableBuilder(
+    column: $table.redeemedAt,
+    builder: (column) => column,
+  );
 }
 
 class $$ShareTokensTableTableManager
@@ -9023,6 +9803,8 @@ class $$ShareTokensTableTableManager
                 Value<String> token = const Value.absent(),
                 Value<String> doctorName = const Value.absent(),
                 Value<DateTime> expiresAt = const Value.absent(),
+                Value<bool> redeemed = const Value.absent(),
+                Value<DateTime?> redeemedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ShareTokensCompanion(
                 userId: userId,
@@ -9033,6 +9815,8 @@ class $$ShareTokensTableTableManager
                 token: token,
                 doctorName: doctorName,
                 expiresAt: expiresAt,
+                redeemed: redeemed,
+                redeemedAt: redeemedAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -9045,6 +9829,8 @@ class $$ShareTokensTableTableManager
                 required String token,
                 required String doctorName,
                 required DateTime expiresAt,
+                Value<bool> redeemed = const Value.absent(),
+                Value<DateTime?> redeemedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ShareTokensCompanion.insert(
                 userId: userId,
@@ -9055,6 +9841,8 @@ class $$ShareTokensTableTableManager
                 token: token,
                 doctorName: doctorName,
                 expiresAt: expiresAt,
+                redeemed: redeemed,
+                redeemedAt: redeemedAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -9092,6 +9880,8 @@ typedef $$EmergencyAccessCodesTableCreateCompanionBuilder =
       required String code,
       required DateTime expiresAt,
       required String scope,
+      Value<bool> redeemed,
+      Value<DateTime?> redeemedAt,
       Value<int> rowid,
     });
 typedef $$EmergencyAccessCodesTableUpdateCompanionBuilder =
@@ -9104,6 +9894,8 @@ typedef $$EmergencyAccessCodesTableUpdateCompanionBuilder =
       Value<String> code,
       Value<DateTime> expiresAt,
       Value<String> scope,
+      Value<bool> redeemed,
+      Value<DateTime?> redeemedAt,
       Value<int> rowid,
     });
 
@@ -9153,6 +9945,16 @@ class $$EmergencyAccessCodesTableFilterComposer
 
   ColumnFilters<String> get scope => $composableBuilder(
     column: $table.scope,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get redeemed => $composableBuilder(
+    column: $table.redeemed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get redeemedAt => $composableBuilder(
+    column: $table.redeemedAt,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -9205,6 +10007,16 @@ class $$EmergencyAccessCodesTableOrderingComposer
     column: $table.scope,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get redeemed => $composableBuilder(
+    column: $table.redeemed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get redeemedAt => $composableBuilder(
+    column: $table.redeemedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$EmergencyAccessCodesTableAnnotationComposer
@@ -9241,6 +10053,14 @@ class $$EmergencyAccessCodesTableAnnotationComposer
 
   GeneratedColumn<String> get scope =>
       $composableBuilder(column: $table.scope, builder: (column) => column);
+
+  GeneratedColumn<bool> get redeemed =>
+      $composableBuilder(column: $table.redeemed, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get redeemedAt => $composableBuilder(
+    column: $table.redeemedAt,
+    builder: (column) => column,
+  );
 }
 
 class $$EmergencyAccessCodesTableTableManager
@@ -9294,6 +10114,8 @@ class $$EmergencyAccessCodesTableTableManager
                 Value<String> code = const Value.absent(),
                 Value<DateTime> expiresAt = const Value.absent(),
                 Value<String> scope = const Value.absent(),
+                Value<bool> redeemed = const Value.absent(),
+                Value<DateTime?> redeemedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => EmergencyAccessCodesCompanion(
                 userId: userId,
@@ -9304,6 +10126,8 @@ class $$EmergencyAccessCodesTableTableManager
                 code: code,
                 expiresAt: expiresAt,
                 scope: scope,
+                redeemed: redeemed,
+                redeemedAt: redeemedAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -9316,6 +10140,8 @@ class $$EmergencyAccessCodesTableTableManager
                 required String code,
                 required DateTime expiresAt,
                 required String scope,
+                Value<bool> redeemed = const Value.absent(),
+                Value<DateTime?> redeemedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => EmergencyAccessCodesCompanion.insert(
                 userId: userId,
@@ -9326,6 +10152,8 @@ class $$EmergencyAccessCodesTableTableManager
                 code: code,
                 expiresAt: expiresAt,
                 scope: scope,
+                redeemed: redeemed,
+                redeemedAt: redeemedAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

@@ -85,6 +85,29 @@ class AuthNotifier extends Notifier<bool> {
         .signUp(email: email.trim(), password: password);
   }
 
+  Future<void> register({
+    required String email,
+    required String password,
+    required String fullName,
+    required String phone,
+  }) async {
+    final trimmedName = fullName.trim();
+    final cred = await ref.read(authServiceProvider).signUp(
+          email: email.trim(),
+          password: password,
+          displayName: trimmedName,
+        );
+    await ref.read(careRepositoryProvider).upsertProfile(
+          cred.user!.uid,
+          name: trimmedName.isEmpty ? email.split('@').first : trimmedName,
+          phone: phone.trim(),
+        );
+  }
+
+  Future<void> sendPasswordReset(String email) async {
+    await ref.read(authServiceProvider).sendPasswordResetEmail(email);
+  }
+
   Future<void> signInWithGoogle() async {
     await ref.read(authServiceProvider).signInWithGoogle();
   }
@@ -200,6 +223,7 @@ UserProfile _emptyProfile([String name = 'User']) {
   return UserProfile(
     name: name,
     initials: initials,
+    phone: '—',
     age: 0,
     bloodType: '—',
     height: '—',
@@ -237,6 +261,58 @@ class UserProfileNotifier extends Notifier<UserProfile> {
 final userProfileProvider = NotifierProvider<UserProfileNotifier, UserProfile>(
   UserProfileNotifier.new,
 );
+
+class UserProfileEditorNotifier extends Notifier<void> {
+  @override
+  void build() {}
+
+  Future<void> save(
+    UserProfile profile, {
+    required String name,
+    required String phone,
+    required int age,
+    required String bloodType,
+    required String height,
+    required String hba1c,
+    required String bpAvg,
+    required String weight,
+    required List<String> allergies,
+    required String emergencyName,
+    required String emergencyRelation,
+    required String emergencyPhone,
+  }) async {
+    final uid = ref.read(currentUserIdProvider);
+    if (uid == null) return;
+    await ref.read(careRepositoryProvider).upsertProfile(
+          uid,
+          name: name,
+          phone: phone,
+          age: age,
+          bloodType: bloodType,
+          height: height,
+          hba1c: hba1c,
+          bpAvg: bpAvg,
+          weight: weight,
+          allergies: allergies,
+          emergencyContact: EmergencyContact(
+            name: emergencyName,
+            relation: emergencyRelation,
+            phone: emergencyPhone,
+          ),
+        );
+    final authUser = ref.read(authServiceProvider).currentUser;
+    if (authUser != null &&
+        name.trim().isNotEmpty &&
+        authUser.displayName != name.trim()) {
+      await ref.read(authServiceProvider).updateDisplayName(name.trim());
+    }
+  }
+}
+
+final userProfileEditorProvider =
+    NotifierProvider<UserProfileEditorNotifier, void>(
+      UserProfileEditorNotifier.new,
+    );
 
 // ── Medications ───────────────────────────────────────────────────────────────
 
@@ -500,6 +576,12 @@ class CaregiversNotifier extends Notifier<List<Caregiver>> {
         .read(careRepositoryProvider)
         .toggleCaregiverNotifications(uid, id);
   }
+
+  Future<void> updateStatus(String id, String status) async {
+    final uid = ref.read(currentUserIdProvider);
+    if (uid == null) return;
+    await ref.read(careRepositoryProvider).updateCaregiverStatus(uid, id, status);
+  }
 }
 
 final caregiversProvider =
@@ -522,6 +604,25 @@ class MetricsNotifier extends Notifier<Map<String, MetricSeries>> {
     ref.onDispose(sub.cancel);
     return {};
   }
+
+  Future<void> addPoint({
+    required String seriesKey,
+    required String label,
+    required String unit,
+    required double value,
+    DateTime? date,
+  }) async {
+    final uid = ref.read(currentUserIdProvider);
+    if (uid == null) return;
+    await ref.read(careRepositoryProvider).addMetricPoint(
+          uid,
+          seriesKey: seriesKey,
+          label: label,
+          unit: unit,
+          value: value,
+          date: date ?? DateTime.now(),
+        );
+  }
 }
 
 final metricsProvider =
@@ -540,6 +641,17 @@ class ToastNotifier extends Notifier<String?> {
     Future.delayed(const Duration(milliseconds: 2400), () {
       if (state == msg) state = null;
     });
+  }
+
+  /// Toast + greppable `[Care+][TODO]` log for stubs not shipped yet.
+  void showUnfinished(
+    String feature, {
+    String? detail,
+    String? userMessage,
+  }) {
+    final note = detail == null ? feature : '$feature — $detail';
+    debugPrint('[Care+][TODO] $note');
+    show(userMessage ?? '$feature is not available yet');
   }
 }
 

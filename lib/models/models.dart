@@ -15,6 +15,7 @@ class OnboardingPage {
 class UserProfile {
   final String name;
   final String initials;
+  final String phone;
   final int age;
   final String bloodType;
   final String height;
@@ -28,6 +29,7 @@ class UserProfile {
   const UserProfile({
     required this.name,
     required this.initials,
+    required this.phone,
     required this.age,
     required this.bloodType,
     required this.height,
@@ -38,6 +40,36 @@ class UserProfile {
     required this.allergies,
     required this.emergencyContact,
   });
+
+  UserProfile copyWith({
+    String? name,
+    String? initials,
+    String? phone,
+    int? age,
+    String? bloodType,
+    String? height,
+    String? patientId,
+    String? hba1c,
+    String? bpAvg,
+    String? weight,
+    List<String>? allergies,
+    EmergencyContact? emergencyContact,
+  }) {
+    return UserProfile(
+      name: name ?? this.name,
+      initials: initials ?? this.initials,
+      phone: phone ?? this.phone,
+      age: age ?? this.age,
+      bloodType: bloodType ?? this.bloodType,
+      height: height ?? this.height,
+      patientId: patientId ?? this.patientId,
+      hba1c: hba1c ?? this.hba1c,
+      bpAvg: bpAvg ?? this.bpAvg,
+      weight: weight ?? this.weight,
+      allergies: allergies ?? this.allergies,
+      emergencyContact: emergencyContact ?? this.emergencyContact,
+    );
+  }
 }
 
 // ── Emergency ────────────────────────────────────────────────────────────────
@@ -137,17 +169,60 @@ class MedicalDocument {
   final String name;
   final String source;
   final String? ocrText; // populated after OCR import
-  MedicalDocument({required this.id, required this.icon, required this.name, required this.source, this.ocrText});
+  final String? storagePath;
+  final String? downloadUrl;
+  final String? mimeType;
+  final int? sizeBytes;
+  final DateTime? createdAt;
+  MedicalDocument({
+    required this.id,
+    required this.icon,
+    required this.name,
+    required this.source,
+    this.ocrText,
+    this.storagePath,
+    this.downloadUrl,
+    this.mimeType,
+    this.sizeBytes,
+    this.createdAt,
+  });
 
-  MedicalDocument copyWith({String? ocrText}) =>
-      MedicalDocument(id: id, icon: icon, name: name, source: source, ocrText: ocrText ?? this.ocrText);
+  MedicalDocument copyWith({
+    String? ocrText,
+    String? storagePath,
+    String? downloadUrl,
+    String? mimeType,
+    int? sizeBytes,
+    DateTime? createdAt,
+  }) => MedicalDocument(
+      id: id,
+      icon: icon,
+      name: name,
+      source: source,
+      ocrText: ocrText ?? this.ocrText,
+      storagePath: storagePath ?? this.storagePath,
+      downloadUrl: downloadUrl ?? this.downloadUrl,
+      mimeType: mimeType ?? this.mimeType,
+      sizeBytes: sizeBytes ?? this.sizeBytes,
+      createdAt: createdAt ?? this.createdAt,
+    );
 }
 
 class RecordShareToken {
+  final String id;
   final String token;
   final String doctorName;
   final DateTime expiresAt;
-  RecordShareToken({required this.token, required this.doctorName, required this.expiresAt});
+  final bool redeemed;
+  final DateTime? redeemedAt;
+  RecordShareToken({
+    required this.id,
+    required this.token,
+    required this.doctorName,
+    required this.expiresAt,
+    this.redeemed = false,
+    this.redeemedAt,
+  });
   bool get isExpired => DateTime.now().isAfter(expiresAt);
 }
 
@@ -162,6 +237,8 @@ class Caregiver {
   final String phone;
   final CaregiverRole role;
   final bool notificationsEnabled;
+  final String status;
+  final DateTime? invitedAt;
   Caregiver({
     required this.id,
     required this.name,
@@ -169,12 +246,21 @@ class Caregiver {
     required this.phone,
     required this.role,
     this.notificationsEnabled = true,
+    this.status = 'pending',
+    this.invitedAt,
   });
 
-  Caregiver copyWith({CaregiverRole? role, bool? notificationsEnabled}) => Caregiver(
+  Caregiver copyWith({
+    CaregiverRole? role,
+    bool? notificationsEnabled,
+    String? status,
+    DateTime? invitedAt,
+  }) => Caregiver(
         id: id, name: name, relation: relation, phone: phone,
         role: role ?? this.role,
         notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+        status: status ?? this.status,
+        invitedAt: invitedAt ?? this.invitedAt,
       );
 
   String get roleLabel {
