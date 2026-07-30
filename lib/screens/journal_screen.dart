@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../data/mock_data.dart';
+import '../constants/journal_constants.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
-// import '../data/mock_data.dart';
-import '../constants/journal_constants.dart'; // added
-import '../providers/providers.dart' hide journalProvider; // added
-import '../providers/journal_provider.dart'; // added
 import '../widgets/shared_widgets.dart';
 
 class JournalScreen extends ConsumerStatefulWidget {
@@ -57,8 +53,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                         label: 'Visits',
                       ),
                       _Stat(
-                        value:
-                            '${all.map((e) => e.facility).toSet().length}',
+                        value: '${all.map((e) => e.facility).toSet().length}',
                         label: 'Facilities',
                       ),
                     ],
@@ -84,8 +79,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                           ),
                           decoration: BoxDecoration(
                             color: active ? teal600 : Colors.transparent,
-                            border:
-                                active ? null : Border.all(color: slate200),
+                            border: active ? null : Border.all(color: slate200),
                             borderRadius: BorderRadius.circular(50),
                           ),
                           child: Text(
@@ -375,7 +369,9 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                       'NOV',
                       'DEC',
                     ];
-                    await ref.read(journalProvider.notifier).add(
+                    await ref
+                        .read(journalProvider.notifier)
+                        .add(
                           JournalEntry(
                             id: now.millisecondsSinceEpoch.toString(),
                             type: type,

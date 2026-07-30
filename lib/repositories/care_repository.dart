@@ -31,6 +31,32 @@ class CareRepository {
         .map((rows) => rows.map(medicationFromRow).toList());
   }
 
+  Future<void> addMedication(String userId, Medication med) async {
+    final now = DateTime.now().toUtc();
+    final id = med.id.isEmpty ? _uuid.v4() : med.id;
+    await _db.into(_db.medications).insert(MedicationsCompanion.insert(
+          id: id,
+          userId: userId,
+          name: med.name,
+          dose: med.dose,
+          condition: med.condition,
+          refills: med.refills,
+          updatedAt: now,
+          syncStatus: const Value(SyncStatuses.pending),
+        ));
+    final row = await (_db.select(_db.medications)
+          ..where((t) => t.id.equals(id) & t.userId.equals(userId)))
+        .getSingle();
+    await _outbox.enqueue(
+      userId: userId,
+      entityType: EntityTypes.medications,
+      entityId: id,
+      operation: SyncOps.create,
+      payload: _medicationPayload(row),
+    );
+    _nudge();
+  }
+
   Future<void> requestRefill(String userId, String id) async {
     final row = await (_db.select(_db.medications)
           ..where((t) => t.id.equals(id) & t.userId.equals(userId)))
@@ -368,6 +394,76 @@ class CareRepository {
         .map((rows) => rows.isEmpty ? null : profileFromRow(rows.first));
   }
 
+  /// Creates a blank per-user profile once (from Auth display name / email).
+  /// Existing Drift or Firestore profiles are left untouched.
+  Future<void> ensureProfile(
+    String userId, {
+    String? displayName,
+    String? email,
+  }) async {
+    final existing = await (_db.select(_db.userProfiles)
+          ..where((t) => t.userId.equals(userId) & t.deletedAt.isNull())
+          ..limit(1))
+        .getSingleOrNull();
+    if (existing != null) return;
+
+    final name = _displayName(displayName, email);
+    final now = DateTime.now().toUtc();
+    final id = 'profile-$userId';
+    final short = userId.length >= 6 ? userId.substring(0, 6) : userId;
+    await _db.into(_db.userProfiles).insert(UserProfilesCompanion.insert(
+          id: id,
+          userId: userId,
+          name: name,
+          initials: _initials(name),
+          age: 0,
+          bloodType: '—',
+          height: '—',
+          patientId: 'CP-${short.toUpperCase()}',
+          hba1c: '—',
+          bpAvg: '—',
+          weight: '—',
+          allergies: '[]',
+          emergencyName: '—',
+          emergencyRelation: '—',
+          emergencyPhone: '—',
+          updatedAt: now,
+          syncStatus: const Value(SyncStatuses.pending),
+        ));
+    final row = await (_db.select(_db.userProfiles)
+          ..where((t) => t.id.equals(id)))
+        .getSingle();
+    await _outbox.enqueue(
+      userId: userId,
+      entityType: EntityTypes.profile,
+      entityId: id,
+      operation: SyncOps.create,
+      payload: _profilePayload(row),
+    );
+    _nudge();
+  }
+
+  static String _displayName(String? displayName, String? email) {
+    final fromAuth = displayName?.trim();
+    if (fromAuth != null && fromAuth.isNotEmpty) return fromAuth;
+    final fromEmail = email?.trim();
+    if (fromEmail != null && fromEmail.contains('@')) {
+      return fromEmail.split('@').first;
+    }
+    return 'User';
+  }
+
+  static String _initials(String name) {
+    final parts =
+        name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return 'U';
+    if (parts.length == 1) {
+      final s = parts.first;
+      return s.substring(0, s.length >= 2 ? 2 : 1).toUpperCase();
+    }
+    return ('${parts.first[0]}${parts.last[0]}').toUpperCase();
+  }
+
   // ── Share tokens ───────────────────────────────────────────────────────────
 
   Stream<List<RecordShareToken>> watchShareTokens(String userId) {
@@ -533,6 +629,27 @@ class CareRepository {
         'dose': r.dose,
         'condition': r.condition,
         'refills': r.refills,
+        'updatedAt': r.updatedAt.toIso8601String(),
+        'syncStatus': r.syncStatus,
+        'deletedAt': r.deletedAt?.toIso8601String(),
+      };
+
+  Map<String, dynamic> _profilePayload(UserProfileRow r) => {
+        'id': r.id,
+        'userId': r.userId,
+        'name': r.name,
+        'initials': r.initials,
+        'age': r.age,
+        'bloodType': r.bloodType,
+        'height': r.height,
+        'patientId': r.patientId,
+        'hba1c': r.hba1c,
+        'bpAvg': r.bpAvg,
+        'weight': r.weight,
+        'allergies': r.allergies,
+        'emergencyName': r.emergencyName,
+        'emergencyRelation': r.emergencyRelation,
+        'emergencyPhone': r.emergencyPhone,
         'updatedAt': r.updatedAt.toIso8601String(),
         'syncStatus': r.syncStatus,
         'deletedAt': r.deletedAt?.toIso8601String(),

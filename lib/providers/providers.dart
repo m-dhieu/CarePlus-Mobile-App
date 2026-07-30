@@ -101,13 +101,20 @@ class AuthNotifier extends Notifier<bool> {
 
 final authProvider = NotifierProvider<AuthNotifier, bool>(AuthNotifier.new);
 
-// seeds Drift + starts sync when a Firebase user is present
+// Starts background Firestore sync when a Firebase user is present.
+// UI reads Drift only; SyncEngine push/pull updates Drift off the main path.
 final sessionBootstrapProvider = FutureProvider<void>((ref) async {
   final uid = ref.watch(currentUserIdProvider);
   if (uid == null) {
     ref.read(syncEngineProvider).stop();
     return;
   }
+  final user = ref.read(authServiceProvider).currentUser;
+  await ref.read(careRepositoryProvider).ensureProfile(
+        uid,
+        displayName: user?.displayName,
+        email: user?.email,
+      );
   await ref.read(seedServiceProvider).seedIfNeeded(uid);
   ref.read(syncEngineProvider).start(uid);
 });
@@ -182,35 +189,48 @@ void _listenList<T>(
 
 // ── User Profile ──────────────────────────────────────────────────────────────
 
-final _fallbackProfile = UserProfile(
-  name: 'Arnold Mugabo',
-  initials: 'AM',
-  age: 42,
-  bloodType: 'O+',
-  height: '174 cm',
-  patientId: 'VTL-2026-08124',
-  hba1c: '6.8%',
-  bpAvg: '124/82',
-  weight: '78 kg',
-  allergies: const ['Penicillin', 'Sulfa drugs', 'Peanuts'],
-  emergencyContact: const EmergencyContact(
-    name: 'Grace Mugisha',
-    relation: 'Spouse',
-    phone: '+250 788 832 123',
-  ),
-);
+UserProfile _emptyProfile([String name = 'User']) {
+  final parts =
+      name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+  final initials = parts.isEmpty
+      ? 'U'
+      : parts.length == 1
+          ? parts.first.substring(0, parts.first.length >= 2 ? 2 : 1).toUpperCase()
+          : '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+  return UserProfile(
+    name: name,
+    initials: initials,
+    age: 0,
+    bloodType: '—',
+    height: '—',
+    patientId: '—',
+    hba1c: '—',
+    bpAvg: '—',
+    weight: '—',
+    allergies: const [],
+    emergencyContact: const EmergencyContact(
+      name: '—',
+      relation: '—',
+      phone: '—',
+    ),
+  );
+}
 
 class UserProfileNotifier extends Notifier<UserProfile> {
   @override
   UserProfile build() {
     final uid = ref.watch(currentUserIdProvider);
-    if (uid == null) return _fallbackProfile;
+    if (uid == null) return _emptyProfile();
     ref.watch(sessionBootstrapProvider);
     final sub = ref.read(careRepositoryProvider).watchProfile(uid).listen((p) {
       if (p != null) state = p;
     });
     ref.onDispose(sub.cancel);
-    return _fallbackProfile;
+    final user = ref.read(authServiceProvider).currentUser;
+    final hint = user?.displayName?.trim().isNotEmpty == true
+        ? user!.displayName!.trim()
+        : (user?.email?.split('@').first ?? 'User');
+    return _emptyProfile(hint);
   }
 }
 
@@ -229,6 +249,12 @@ class MedicationsNotifier extends Notifier<List<Medication>> {
       (v) => state = v,
     );
     return const [];
+  }
+
+  Future<void> add(Medication med) async {
+    final uid = ref.read(currentUserIdProvider);
+    if (uid == null) return;
+    await ref.read(careRepositoryProvider).addMedication(uid, med);
   }
 
   Future<void> requestRefill(String id) async {

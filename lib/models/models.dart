@@ -77,6 +77,22 @@ class Reminder {
   bool enabled;
   Reminder({required this.id, required this.medicationName, required this.time, required this.days, this.enabled = true});
 
+  Reminder copyWith({
+    String? id,
+    String? medicationName,
+    TimeOfDay? time,
+    List<bool>? days,
+    bool? enabled,
+  }) {
+    return Reminder(
+      id: id ?? this.id,
+      medicationName: medicationName ?? this.medicationName,
+      time: time ?? this.time,
+      days: days ?? this.days,
+      enabled: enabled ?? this.enabled,
+    );
+  }
+
   String get daysLabel {
     const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
     final active = <String>[];

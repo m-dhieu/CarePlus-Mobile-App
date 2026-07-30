@@ -1,17 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../data/mock_data.dart';
 import '../providers/providers.dart';
 import '../widgets/shared_widgets.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
+  static const _settings = [
+    {'icon': Icons.notifications, 'label': 'Reminders & notifications', 'value': 'On'},
+    {'icon': Icons.shield, 'label': 'Privacy & data sharing', 'value': 'Managed'},
+    {'icon': Icons.language, 'label': 'Language', 'value': 'English'},
+  ];
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     void toast(String msg) => ref.read(toastProvider.notifier).show(msg);
     void back() => ref.read(screenProvider.notifier).go('home');
     final user = ref.watch(userProfileProvider);
+    final meds = ref.watch(medicationsProvider);
+    final conditions = meds
+        .map((m) => m.condition.trim())
+        .where((c) => c.isNotEmpty && c != '—')
+        .toSet()
+        .toList();
 
     return Column(
       children: [
@@ -108,35 +119,41 @@ class ProfileScreen extends ConsumerWidget {
 
                 const Text('Conditions', style: TextStyle(fontWeight: FontWeight.w800, color: slate900)),
                 const SizedBox(height: 8),
-                ...mockConditions.map((c) => Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(border: Border.all(color: teal100), borderRadius: BorderRadius.circular(16)),
-                  child: Row(
-                    children: [
-                      IconCircle(icon: c['icon'] as IconData),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(c['name']! as String, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: slate900)),
-                            Text('Diagnosed ${c['diagnosed']}', style: const TextStyle(fontSize: 11, color: slate400)),
-                          ],
+                if (conditions.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 10),
+                    child: Text(
+                      'No conditions yet — they appear from your medications.',
+                      style: TextStyle(fontSize: 13, color: slate400),
+                    ),
+                  )
+                else
+                  ...conditions.map((name) => Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(border: Border.all(color: teal100), borderRadius: BorderRadius.circular(16)),
+                    child: Row(
+                      children: [
+                        const IconCircle(icon: Icons.monitor_heart),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: slate900)),
                         ),
-                      ),
-                      TagChip(label: c['status']! as String),
-                    ],
-                  ),
-                )),
+                        const TagChip(label: 'Active'),
+                      ],
+                    ),
+                  )),
                 const SizedBox(height: 8),
                 const Text('Allergies', style: TextStyle(fontWeight: FontWeight.w800, color: slate900)),
                 const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: user.allergies.map((a) => TagChip(label: a, rose: true)).toList(),
-                ),
+                if (user.allergies.isEmpty)
+                  const Text('None recorded', style: TextStyle(fontSize: 13, color: slate400))
+                else
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: user.allergies.map((a) => TagChip(label: a, rose: true)).toList(),
+                  ),
                 const SizedBox(height: 20),
                 const Text('Emergency contact', style: TextStyle(fontWeight: FontWeight.w800, color: slate900)),
                 const SizedBox(height: 8),
@@ -172,8 +189,8 @@ class ProfileScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
                 const Text('Settings', style: TextStyle(fontWeight: FontWeight.w800, color: slate900)),
                 const SizedBox(height: 8),
-                ...mockSettings.map((s) => GestureDetector(
-                  onTap: () => toast('"${s['label']}" needs a backend connection'),
+                ..._settings.map((s) => GestureDetector(
+                  onTap: () => toast('"${s['label']}" coming soon'),
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 10),
                     padding: const EdgeInsets.all(12),
