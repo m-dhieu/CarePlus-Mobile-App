@@ -10,6 +10,10 @@ abstract final class EntityTypes {
   static const shareTokens = 'share_tokens';
   static const emergencyAccess = 'emergency_access';
 
+  /// Top-level Care+ user registry (`users/{user_00N}`), push-only
+  static const users = 'users';
+
+  /// Collections nested under `users/{authUid}/…` that SyncEngine pulls
   static const all = [
     medications,
     reminders,

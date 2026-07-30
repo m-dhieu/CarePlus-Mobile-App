@@ -5,6 +5,7 @@ import 'package:careplus/database/mappers.dart';
 import 'package:careplus/models/models.dart';
 import 'package:careplus/repositories/care_repository.dart';
 import 'package:careplus/repositories/seed_service.dart';
+import 'package:careplus/services/care_user_id_service.dart';
 import 'package:careplus/sync/outbox_service.dart';
 import 'package:careplus/sync/sync_constants.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
@@ -16,12 +17,46 @@ import '../support/harness.dart';
 // Drift-primary repos, mappers, outbox coalescing — offline-first core
 
 void main() {
+  group('CareUserIdService', () {
+    test('format pads seed-schema ids', () {
+      expect(CareUserIdService.format(1), 'user_001');
+      expect(CareUserIdService.format(2), 'user_002');
+      expect(CareUserIdService.format(12), 'user_012');
+    });
+
+    test('localFallback stays user_-prefixed', () {
+      final id = CareUserIdService.localFallback();
+      expect(id, startsWith('user_'));
+      expect(id.length, greaterThan('user_'.length));
+    });
+
+    test('registryPayload matches seed user fields', () {
+      final payload = CareUserIdService(localOnly: true).registryPayload(
+        careUserId: 'user_003',
+        authUid: 'firebase-uid',
+        fullName: 'Alice',
+        email: 'a@example.com',
+        phone: '+250700000000',
+      );
+      expect(payload['uid'], 'user_003');
+      expect(payload['id'], 'user_003');
+      expect(payload['authUid'], 'firebase-uid');
+      expect(payload['userId'], 'firebase-uid');
+      expect(payload['role'], 'patient');
+      expect(payload['status'], 'active');
+      expect(payload['fullName'], 'Alice');
+      expect(payload['email'], 'a@example.com');
+    });
+  });
+
   group('Sync constants', () {
     test('entity type list covers core collections', () {
       expect(EntityTypes.all, contains(EntityTypes.medications));
       expect(EntityTypes.all, contains(EntityTypes.reminders));
       expect(EntityTypes.all, contains(EntityTypes.journalEntries));
       expect(EntityTypes.all, contains(EntityTypes.profile));
+      expect(EntityTypes.all, isNot(contains(EntityTypes.users)));
+      expect(EntityTypes.users, 'users');
       expect(SyncStatuses.pending, 'pending');
       expect(SyncStatuses.synced, 'synced');
       expect(SyncOps.create, 'create');
@@ -251,7 +286,12 @@ void main() {
       db = memoryDb();
       outbox = OutboxService(db);
       dirtyCalls = 0;
-      repo = CareRepository(db, outbox, onDirty: () => dirtyCalls++);
+      repo = CareRepository(
+        db,
+        outbox,
+        onDirty: () => dirtyCalls++,
+        careUserIds: CareUserIdService(localOnly: true),
+      );
 
       await db
           .into(db.medications)
@@ -365,12 +405,24 @@ void main() {
       expect(profile, isNotNull);
       expect(profile!.name, 'Alice Patient');
       expect(profile.phone, '—');
+      expect(profile.patientId, startsWith('user_'));
 
       final pending = await outbox.pending('u1');
       expect(
         pending.where((p) => p.entityType == EntityTypes.profile),
         hasLength(1),
       );
+      final registry = pending
+          .where((p) => p.entityType == EntityTypes.users)
+          .toList();
+      expect(registry, hasLength(1));
+      expect(registry.first.entityId, profile.patientId);
+      final payload =
+          jsonDecode(registry.first.payloadJson) as Map<String, dynamic>;
+      expect(payload['uid'], profile.patientId);
+      expect(payload['authUid'], 'u1');
+      expect(payload['fullName'], 'Alice Patient');
+      expect(payload['email'], 'alice@example.com');
     });
 
     test(
@@ -381,16 +433,23 @@ void main() {
           displayName: 'Alice Patient',
           email: 'alice@example.com',
         );
+        final careId = (await repo.watchProfile('u1').first)!.patientId;
         await outbox.removeForEntity(
           userId: 'u1',
           entityType: EntityTypes.profile,
           entityId: 'profile-u1',
+        );
+        await outbox.removeForEntity(
+          userId: 'u1',
+          entityType: EntityTypes.users,
+          entityId: careId,
         );
 
         await repo.upsertProfile(
           'u1',
           name: 'Alice Uwimana',
           phone: '+250788000000',
+          email: 'alice@example.com',
           age: 42,
           bloodType: 'O+',
           allergies: const ['Peanuts'],
@@ -405,15 +464,20 @@ void main() {
         expect(profile, isNotNull);
         expect(profile!.name, 'Alice Uwimana');
         expect(profile.phone, '+250788000000');
+        expect(profile.patientId, careId);
         expect(profile.age, 42);
         expect(profile.bloodType, 'O+');
         expect(profile.allergies, ['Peanuts']);
         expect(profile.emergencyContact.name, 'Grace');
 
         final pending = await outbox.pending('u1');
-        expect(pending, hasLength(1));
-        expect(pending.first.entityType, EntityTypes.profile);
-        expect(pending.first.operation, SyncOps.update);
+        expect(pending, hasLength(2));
+        final profileOp =
+            pending.firstWhere((p) => p.entityType == EntityTypes.profile);
+        expect(profileOp.operation, SyncOps.update);
+        final registryOp =
+            pending.firstWhere((p) => p.entityType == EntityTypes.users);
+        expect(registryOp.entityId, careId);
       },
     );
   });

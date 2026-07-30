@@ -101,6 +101,7 @@ class AuthNotifier extends Notifier<bool> {
           cred.user!.uid,
           name: trimmedName.isEmpty ? email.split('@').first : trimmedName,
           phone: phone.trim(),
+          email: email.trim(),
         );
   }
 

@@ -7,20 +7,51 @@ import 'package:uuid/uuid.dart';
 import '../database/app_database.dart';
 import '../database/mappers.dart';
 import '../models/models.dart';
+import '../services/care_user_id_service.dart';
 import '../sync/outbox_service.dart';
 import '../sync/sync_constants.dart';
 
 typedef SyncRequest = void Function();
 
 class CareRepository {
-  CareRepository(this._db, this._outbox, {this.onDirty});
+  CareRepository(
+    this._db,
+    this._outbox, {
+    this.onDirty,
+    CareUserIdService? careUserIds,
+  }) : _careUserIds = careUserIds ?? CareUserIdService();
 
   final AppDatabase _db;
   final OutboxService _outbox;
   final SyncRequest? onDirty;
+  final CareUserIdService _careUserIds;
   static const _uuid = Uuid();
 
   void _nudge() => onDirty?.call();
+
+  Future<String> _allocatePatientId() => _careUserIds.allocate();
+
+  Future<void> _enqueueUserRegistry({
+    required String authUid,
+    required String careUserId,
+    required String fullName,
+    required String email,
+    required String phone,
+  }) async {
+    await _outbox.enqueue(
+      userId: authUid,
+      entityType: EntityTypes.users,
+      entityId: careUserId,
+      operation: SyncOps.create,
+      payload: _careUserIds.registryPayload(
+        careUserId: careUserId,
+        authUid: authUid,
+        fullName: fullName,
+        email: email,
+        phone: phone,
+      ),
+    );
+  }
 
   // ── Medications ────────────────────────────────────────────────────────────
 
@@ -460,6 +491,8 @@ class CareRepository {
   }
 
   /// Creates a blank per-user profile once (from Auth display name / email).
+  /// Assigns Care+ public id `user_00N` (seed schema) as [patientId] and queues
+  /// a top-level `users/{user_00N}` registry doc for sync.
   /// Existing Drift or Firestore profiles are left untouched.
   Future<void> ensureProfile(
     String userId, {
@@ -475,7 +508,8 @@ class CareRepository {
     final name = _displayName(displayName, email);
     final now = DateTime.now().toUtc();
     final id = 'profile-$userId';
-    final short = userId.length >= 6 ? userId.substring(0, 6) : userId;
+    final patientId = await _allocatePatientId();
+    final mail = email?.trim() ?? '';
     await _db.into(_db.userProfiles).insert(UserProfilesCompanion.insert(
           id: id,
           userId: userId,
@@ -485,7 +519,7 @@ class CareRepository {
           age: 0,
           bloodType: '—',
           height: '—',
-          patientId: 'CP-${short.toUpperCase()}',
+          patientId: patientId,
           hba1c: '—',
           bpAvg: '—',
           weight: '—',
@@ -506,6 +540,13 @@ class CareRepository {
       operation: SyncOps.create,
       payload: _profilePayload(row),
     );
+    await _enqueueUserRegistry(
+      authUid: userId,
+      careUserId: patientId,
+      fullName: name,
+      email: mail,
+      phone: '—',
+    );
     _nudge();
   }
 
@@ -513,6 +554,7 @@ class CareRepository {
     String userId, {
     required String name,
     required String phone,
+    String? email,
     int? age,
     String? bloodType,
     String? height,
@@ -531,18 +573,21 @@ class CareRepository {
         : profileFromRow(existing).allergies;
     final now = DateTime.now().toUtc();
     final id = existing?.id ?? 'profile-$userId';
-    final short = userId.length >= 6 ? userId.substring(0, 6) : userId;
+    final isNew = existing == null;
+    final patientId = existing?.patientId ?? await _allocatePatientId();
+    final trimmedName = name.trim().isEmpty ? 'User' : name.trim();
+    final trimmedPhone = phone.trim().isEmpty ? '—' : phone.trim();
     await _db.into(_db.userProfiles).insertOnConflictUpdate(
           UserProfilesCompanion.insert(
             id: id,
             userId: userId,
-            name: name.trim().isEmpty ? 'User' : name.trim(),
-            initials: _initials(name.trim().isEmpty ? 'User' : name.trim()),
-            phone: Value(phone.trim().isEmpty ? '—' : phone.trim()),
+            name: trimmedName,
+            initials: _initials(trimmedName),
+            phone: Value(trimmedPhone),
             age: age ?? existing?.age ?? 0,
             bloodType: bloodType ?? existing?.bloodType ?? '—',
             height: height ?? existing?.height ?? '—',
-            patientId: existing?.patientId ?? 'CP-${short.toUpperCase()}',
+            patientId: patientId,
             hba1c: hba1c ?? existing?.hba1c ?? '—',
             bpAvg: bpAvg ?? existing?.bpAvg ?? '—',
             weight: weight ?? existing?.weight ?? '—',
@@ -564,8 +609,15 @@ class CareRepository {
       userId: userId,
       entityType: EntityTypes.profile,
       entityId: id,
-      operation: existing == null ? SyncOps.create : SyncOps.update,
+      operation: isNew ? SyncOps.create : SyncOps.update,
       payload: _profilePayload(row),
+    );
+    await _enqueueUserRegistry(
+      authUid: userId,
+      careUserId: patientId,
+      fullName: trimmedName,
+      email: email?.trim() ?? '',
+      phone: trimmedPhone,
     );
     _nudge();
   }

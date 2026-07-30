@@ -432,6 +432,9 @@ class SyncEngine {
             syncStatus: Value(SyncStatuses.synced),
           ),
         );
+      case EntityTypes.users:
+        // Registry lives only in Firestore (no Drift row to mark)
+        break;
     }
   }
 
@@ -439,7 +442,11 @@ class SyncEngine {
     String uid,
     String type,
   ) {
-    // profile stored as collection too (doc id = profile-{uid})
+    // Top-level Care+ user registry (seed schema: users/user_00N)
+    if (type == EntityTypes.users) {
+      return _fs.collection(EntityTypes.users);
+    }
+    // Nested care data: users/{authUid}/{entityType}
     return _fs.collection('users').doc(uid).collection(type);
   }
 
@@ -448,6 +455,9 @@ class SyncEngine {
     String type,
     String id,
   ) {
+    if (type == EntityTypes.users) {
+      return _fs.collection(EntityTypes.users).doc(id);
+    }
     return _collection(uid, type).doc(id);
   }
 
