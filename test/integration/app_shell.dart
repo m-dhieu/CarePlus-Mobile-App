@@ -1,34 +1,16 @@
 import 'package:careplus/database/app_database.dart';
-import 'package:careplus/main.dart';
 import 'package:careplus/models/models.dart';
 import 'package:careplus/providers/providers.dart';
 import 'package:careplus/repositories/care_repository.dart';
 import 'package:careplus/sync/outbox_service.dart';
 import 'package:careplus/sync/sync_constants.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
-import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-AppDatabase _memoryDb() => AppDatabase(NativeDatabase.memory());
+import '../support/harness.dart';
 
-class _AuthedNotifier extends AuthNotifier {
-  @override
-  bool build() => true;
-}
-
-class _OnboardedNotifier extends OnboardingNotifier {
-  @override
-  bool build() => true;
-}
-
-class _ScreenNotifier extends ScreenNotifier {
-  _ScreenNotifier(this.initial);
-  final String initial;
-  @override
-  String build() => initial;
-}
+// signed-in app shell - Drift data, nav, multi-entity repo loop
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -37,51 +19,12 @@ void main() {
     late AppDatabase db;
 
     setUp(() {
-      db = _memoryDb();
+      db = memoryDb();
     });
 
     tearDown(() async {
       await db.close();
     });
-
-    Future<ProviderContainer> pumpApp(
-      WidgetTester tester, {
-      String uid = 'user-a',
-      String screen = 'meds',
-    }) async {
-      final view = tester.view;
-      view.physicalSize = const Size(390, 844);
-      view.devicePixelRatio = 1.0;
-      addTearDown(view.resetPhysicalSize);
-      addTearDown(view.resetDevicePixelRatio);
-
-      // Home has known tight-layout overflows in tests; ignore those only.
-      final previous = FlutterError.onError;
-      FlutterError.onError = (details) {
-        if (details.toString().contains('A RenderFlex overflowed')) return;
-        previous?.call(details);
-      };
-      addTearDown(() => FlutterError.onError = previous);
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            databaseProvider.overrideWithValue(db),
-            currentUserIdProvider.overrideWithValue(uid),
-            authProvider.overrideWith(_AuthedNotifier.new),
-            onboardingProvider.overrideWith(_OnboardedNotifier.new),
-            sessionBootstrapProvider.overrideWith((ref) async {}),
-            screenProvider.overrideWith(() => _ScreenNotifier(screen)),
-          ],
-          child: const CarePlusApp(),
-        ),
-      );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
-      return ProviderScope.containerOf(
-        tester.element(find.byType(CarePlusApp)),
-      );
-    }
 
     testWidgets('signed-in shell reaches medications from Drift', (
       tester,
@@ -101,21 +44,25 @@ void main() {
             ),
           );
 
-      await pumpApp(tester, screen: 'meds');
+      await pumpSignedInApp(tester, db: db, uid: 'user-a', screen: 'meds');
 
       expect(find.text('Medications'), findsOneWidget);
       expect(find.text('Metformin'), findsWidgets);
       expect(find.text('Type 2 Diabetes'), findsOneWidget);
       expect(find.text('Home'), findsWidgets);
 
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pump(const Duration(milliseconds: 1));
+      await unmountTester(tester);
     });
 
     testWidgets('journal add writes Drift, shows in UI, and queues outbox', (
       tester,
     ) async {
-      final container = await pumpApp(tester, screen: 'journal');
+      final container = await pumpSignedInApp(
+        tester,
+        db: db,
+        uid: 'user-a',
+        screen: 'journal',
+      );
 
       expect(find.text('Treatment Journal'), findsOneWidget);
       expect(find.text('No journal entries yet'), findsOneWidget);
@@ -150,9 +97,7 @@ void main() {
         isTrue,
       );
 
-      // Unmount so Drift stream cancel timers can flush.
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pump(const Duration(milliseconds: 1));
+      await unmountTester(tester);
     });
 
     testWidgets('user B medications are not shown for user A session', (
@@ -173,23 +118,21 @@ void main() {
             ),
           );
 
-      await pumpApp(tester, uid: 'user-a', screen: 'meds');
+      await pumpSignedInApp(tester, db: db, uid: 'user-a', screen: 'meds');
       expect(find.text('Secret Med'), findsNothing);
       expect(find.text('Medications'), findsOneWidget);
 
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pump(const Duration(milliseconds: 1));
+      await unmountTester(tester);
     });
 
     testWidgets('bottom nav switches records screen', (tester) async {
-      await pumpApp(tester, screen: 'meds');
+      await pumpSignedInApp(tester, db: db, screen: 'meds');
       await tester.tap(find.text('Records'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
       expect(find.text('Medical Records'), findsOneWidget);
 
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pump(const Duration(milliseconds: 1));
+      await unmountTester(tester);
     });
   });
 
@@ -199,7 +142,7 @@ void main() {
     late CareRepository repo;
 
     setUp(() {
-      db = _memoryDb();
+      db = memoryDb();
       outbox = OutboxService(db);
       repo = CareRepository(db, outbox, onDirty: () {});
     });

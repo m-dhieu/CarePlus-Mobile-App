@@ -1,17 +1,8 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// Care+ widget tests — every screen builds without crashing
+// run with flutter test test/widget_test.dart
 
-import 'package:flutter_test/flutter_test.dart';
-
-import 'package:careplus/main.dart';
+import 'widget/screens.dart' as screens;
 
 void main() {
-  testWidgets('unsupported platform shell builds', (WidgetTester tester) async {
-    await tester.pumpWidget(const UnsupportedPlatformApp());
-    expect(find.textContaining('Care+ supports'), findsOneWidget);
-  });
+  screens.main();
 }

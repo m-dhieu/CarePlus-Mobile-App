@@ -8,11 +8,12 @@ import 'package:careplus/repositories/seed_service.dart';
 import 'package:careplus/sync/outbox_service.dart';
 import 'package:careplus/sync/sync_constants.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
-import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-AppDatabase _memoryDb() => AppDatabase(NativeDatabase.memory());
+import '../support/harness.dart';
+
+// Drift-primary repos, mappers, outbox coalescing — offline-first core
 
 void main() {
   group('Sync constants', () {
@@ -79,6 +80,7 @@ void main() {
         phone: '+250',
         role: 'fullAccess',
         notificationsEnabled: true,
+        status: 'pending',
         updatedAt: now,
         syncStatus: SyncStatuses.synced,
         deletedAt: null,
@@ -128,7 +130,7 @@ void main() {
     late OutboxService outbox;
 
     setUp(() {
-      db = _memoryDb();
+      db = memoryDb();
       outbox = OutboxService(db);
     });
 
@@ -246,7 +248,7 @@ void main() {
     var dirtyCalls = 0;
 
     setUp(() async {
-      db = _memoryDb();
+      db = memoryDb();
       outbox = OutboxService(db);
       dirtyCalls = 0;
       repo = CareRepository(db, outbox, onDirty: () => dirtyCalls++);
@@ -346,6 +348,74 @@ void main() {
       final reminders = await repo.watchReminders('u1').first;
       expect(reminders.firstWhere((r) => r.id == 'r3').enabled, isFalse);
     });
+
+    test('ensureProfile bootstraps from auth hints once', () async {
+      await repo.ensureProfile(
+        'u1',
+        displayName: 'Alice Patient',
+        email: 'alice@example.com',
+      );
+      await repo.ensureProfile(
+        'u1',
+        displayName: 'Overwritten Name',
+        email: 'other@example.com',
+      );
+
+      final profile = await repo.watchProfile('u1').first;
+      expect(profile, isNotNull);
+      expect(profile!.name, 'Alice Patient');
+      expect(profile.phone, '—');
+
+      final pending = await outbox.pending('u1');
+      expect(
+        pending.where((p) => p.entityType == EntityTypes.profile),
+        hasLength(1),
+      );
+    });
+
+    test(
+      'upsertProfile updates existing profile and queues sync update',
+      () async {
+        await repo.ensureProfile(
+          'u1',
+          displayName: 'Alice Patient',
+          email: 'alice@example.com',
+        );
+        await outbox.removeForEntity(
+          userId: 'u1',
+          entityType: EntityTypes.profile,
+          entityId: 'profile-u1',
+        );
+
+        await repo.upsertProfile(
+          'u1',
+          name: 'Alice Uwimana',
+          phone: '+250788000000',
+          age: 42,
+          bloodType: 'O+',
+          allergies: const ['Peanuts'],
+          emergencyContact: const EmergencyContact(
+            name: 'Grace',
+            relation: 'Sister',
+            phone: '+250700000000',
+          ),
+        );
+
+        final profile = await repo.watchProfile('u1').first;
+        expect(profile, isNotNull);
+        expect(profile!.name, 'Alice Uwimana');
+        expect(profile.phone, '+250788000000');
+        expect(profile.age, 42);
+        expect(profile.bloodType, 'O+');
+        expect(profile.allergies, ['Peanuts']);
+        expect(profile.emergencyContact.name, 'Grace');
+
+        final pending = await outbox.pending('u1');
+        expect(pending, hasLength(1));
+        expect(pending.first.entityType, EntityTypes.profile);
+        expect(pending.first.operation, SyncOps.update);
+      },
+    );
   });
 
   group('SeedService', () {
@@ -354,7 +424,7 @@ void main() {
     late SeedService seed;
 
     setUp(() {
-      db = _memoryDb();
+      db = memoryDb();
       outbox = OutboxService(db);
       seed = SeedService(db, outbox);
     });
@@ -388,7 +458,7 @@ void main() {
     late CareRepository repo;
 
     setUp(() {
-      db = _memoryDb();
+      db = memoryDb();
       outbox = OutboxService(db);
       repo = CareRepository(db, outbox, onDirty: () {});
     });
