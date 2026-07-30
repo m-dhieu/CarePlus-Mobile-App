@@ -1,11 +1,9 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'firebase_options.dart';
 import 'providers/providers.dart';
 import 'screens/auth_screen.dart';
-import 'screens/email_verification_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/journal_screen.dart';
@@ -18,7 +16,6 @@ import 'screens/caregivers_screen.dart';
 import 'screens/metrics_screen.dart';
 import 'services/platform_mode.dart';
 import 'widgets/shared_widgets.dart';
-import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -80,7 +77,7 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authStateProvider);
+    final authed = ref.watch(authProvider);
     final onboarded = ref.watch(onboardingProvider);
     final screen = ref.watch(screenProvider);
     final toast = ref.watch(toastProvider);

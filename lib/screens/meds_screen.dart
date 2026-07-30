@@ -142,28 +142,31 @@ class MedsScreen extends ConsumerWidget {
                       child: Column(
                         children: [
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              RichText(
-                                text: TextSpan(
-                                  text: block['label'] as String,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w800,
-                                    color: slate900,
-                                  ),
-                                  children: [
-                                    TextSpan(
-                                      text: '  ${block['time']}',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w400,
-                                        color: slate400,
-                                      ),
+                              Expanded(
+                                child: RichText(
+                                  overflow: TextOverflow.ellipsis,
+                                  text: TextSpan(
+                                    text: block['label'] as String,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                      color: slate900,
                                     ),
-                                  ],
+                                    children: [
+                                      TextSpan(
+                                        text: '  ${block['time']}',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w400,
+                                          color: slate400,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
+                              const SizedBox(width: 8),
                               Text(
                                 '${items.length} dose${items.length == 1 ? '' : 's'}',
                                 style: const TextStyle(
@@ -188,6 +191,8 @@ class MedsScreen extends ConsumerWidget {
                                       children: [
                                         Text(
                                           item['name']!,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                           style: const TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w700,
@@ -196,6 +201,8 @@ class MedsScreen extends ConsumerWidget {
                                         ),
                                         Text(
                                           item['detail']!,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                           style: const TextStyle(
                                             fontSize: 11,
                                             color: slate400,

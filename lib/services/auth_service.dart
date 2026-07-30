@@ -53,11 +53,29 @@ class AuthService {
   Future<UserCredential> signUp({
     required String email,
     required String password,
-  }) {
-    return _auth.createUserWithEmailAndPassword(
+    String? displayName,
+  }) async {
+    final credential = await _signUpAndBootstrapProfile(
       email: email,
       password: password,
     );
+    final trimmedName = displayName?.trim();
+    if (trimmedName != null && trimmedName.isNotEmpty) {
+      await credential.user?.updateDisplayName(trimmedName);
+      await credential.user?.reload();
+    }
+    return credential;
+  }
+
+  Future<void> sendPasswordResetEmail(String email) {
+    return _auth.sendPasswordResetEmail(email: email.trim());
+  }
+
+  Future<void> updateDisplayName(String displayName) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await user.updateDisplayName(displayName.trim());
+    await user.reload();
   }
 
   Future<UserCredential> signInWithGoogle() async {
@@ -135,6 +153,16 @@ class AuthService {
       // Google may not have been initialized / used.
     }
     await _auth.signOut();
+  }
+
+  Future<UserCredential> _signUpAndBootstrapProfile({
+    required String email,
+    required String password,
+  }) async {
+    return _auth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
   }
 
   Future<UserCredential> _signInWithCredential(AuthCredential credential) {

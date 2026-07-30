@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
-import '../providers/providers.dart' hide caregiversProvider;
-import '../providers/caregiver_provider.dart';
+import '../providers/providers.dart';
 import '../widgets/shared_widgets.dart';
 
 class CaregiversScreen extends ConsumerWidget {
@@ -10,8 +9,7 @@ class CaregiversScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // final caregivers = ref.watch(caregiversProvider);
-    final caregiversAsync = ref.watch(caregiversProvider); // added
+    final caregivers = ref.watch(caregiversProvider);
     void back() => ref.read(screenProvider.notifier).go('profile');
 
     return Column(
@@ -38,7 +36,6 @@ class CaregiversScreen extends ConsumerWidget {
                       _CaregiverCard(caregiver: caregivers[i]),
                 ),
         ),
-        )
       ],
     );
   }
@@ -104,7 +101,7 @@ class CaregiversScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 6),
               DropdownButtonFormField<CaregiverRole>(
-                value: role,
+                initialValue: role,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -127,19 +124,7 @@ class CaregiversScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 20),
               GestureDetector(
-                // onTap: () {
-                //   if (nameCtrl.text.trim().isEmpty) return;
-                //   ref.read(caregiversProvider.notifier).add(Caregiver(
-                //     id: DateTime.now().millisecondsSinceEpoch.toString(),
-                //     name: nameCtrl.text.trim(),
-                //     relation: relationCtrl.text.trim(),
-                //     phone: phoneCtrl.text.trim(),
-                //     role: role,
-                //   ));
-                //   Navigator.pop(ctx);
-                //   ref.read(toastProvider.notifier).show('Caregiver added');
-                // },
-                onTap: () async {
+                onTap: () {
                   if (nameCtrl.text.trim().isEmpty) return;
                   ref
                       .read(caregiversProvider.notifier)
@@ -228,6 +213,8 @@ class _CaregiverCard extends ConsumerWidget {
                   children: [
                     Text(
                       caregiver.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
@@ -236,26 +223,33 @@ class _CaregiverCard extends ConsumerWidget {
                     ),
                     Text(
                       '${caregiver.relation} · ${caregiver.phone}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 11, color: slate400),
                     ),
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: roleColors[caregiver.role]!.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  caregiver.roleLabel,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: roleColors[caregiver.role],
+              const SizedBox(width: 8),
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: roleColors[caregiver.role]!.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    caregiver.roleLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: roleColors[caregiver.role],
+                    ),
                   ),
                 ),
               ),
@@ -266,8 +260,9 @@ class _CaregiverCard extends ConsumerWidget {
             children: [
               Expanded(
                 child: DropdownButtonFormField<CaregiverRole>(
-                  value: caregiver.role,
+                  initialValue: caregiver.role,
                   isDense: true,
+                  isExpanded: true,
                   decoration: InputDecoration(
                     labelText: 'Access',
                     labelStyle: const TextStyle(fontSize: 11, color: slate400),
@@ -290,6 +285,7 @@ class _CaregiverCard extends ConsumerWidget {
                       value: r,
                       child: Text(
                         labels[r]!,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontSize: 12),
                       ),
                     );
@@ -299,21 +295,17 @@ class _CaregiverCard extends ConsumerWidget {
                       .updateRole(caregiver.id, v!),
                 ),
               ),
-              const SizedBox(width: 12),
-              Row(
-                children: [
-                  const Text(
-                    'Notify',
-                    style: TextStyle(fontSize: 12, color: slate500),
-                  ),
-                  Switch(
-                    value: caregiver.notificationsEnabled,
-                    activeThumbColor: teal600,
-                    onChanged: (_) => ref
-                        .read(caregiversProvider.notifier)
-                        .toggleNotifications(caregiver.id),
-                  ),
-                ],
+              const SizedBox(width: 8),
+              const Text(
+                'Notify',
+                style: TextStyle(fontSize: 12, color: slate500),
+              ),
+              Switch(
+                value: caregiver.notificationsEnabled,
+                activeThumbColor: teal600,
+                onChanged: (_) => ref
+                    .read(caregiversProvider.notifier)
+                    .toggleNotifications(caregiver.id),
               ),
               GestureDetector(
                 onTap: () =>

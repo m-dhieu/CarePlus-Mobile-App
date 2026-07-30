@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/providers.dart' hide metricsProvider; // added
-import '/providers/metric_provider.dart'; // added
+import '../providers/providers.dart';
 import '../models/models.dart';
 import '../widgets/shared_widgets.dart';
 
@@ -10,8 +9,7 @@ class MetricsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // final metrics = ref.watch(metricsProvider);
-    final metricsState = ref.watch(metricsProvider); // added
+    final metrics = ref.watch(metricsProvider);
     void back() => ref.read(screenProvider.notifier).go('profile');
 
     final keys = ['glucose', 'bp_sys', 'bp_dia', 'hr', 'weight', 'hba1c'];

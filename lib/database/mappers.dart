@@ -41,6 +41,11 @@ MedicalDocument documentFromRow(DocumentRow row) => MedicalDocument(
       name: row.name,
       source: row.source,
       ocrText: row.ocrText,
+      storagePath: row.storagePath,
+      downloadUrl: row.downloadUrl,
+      mimeType: row.mimeType,
+      sizeBytes: row.sizeBytes,
+      createdAt: row.createdAt,
     );
 
 Caregiver caregiverFromRow(CaregiverRow row) => Caregiver(
@@ -53,11 +58,14 @@ Caregiver caregiverFromRow(CaregiverRow row) => Caregiver(
         orElse: () => CaregiverRole.viewOnly,
       ),
       notificationsEnabled: row.notificationsEnabled,
+      status: row.status,
+      invitedAt: row.invitedAt,
     );
 
 UserProfile profileFromRow(UserProfileRow row) => UserProfile(
       name: row.name,
       initials: row.initials,
+      phone: row.phone,
       age: row.age,
       bloodType: row.bloodType,
       height: row.height,
@@ -74,9 +82,12 @@ UserProfile profileFromRow(UserProfileRow row) => UserProfile(
     );
 
 RecordShareToken shareTokenFromRow(ShareTokenRow row) => RecordShareToken(
+      id: row.id,
       token: row.token,
       doctorName: row.doctorName,
       expiresAt: row.expiresAt,
+      redeemed: row.redeemed,
+      redeemedAt: row.redeemedAt,
     );
 
 EmergencyAccessCode emergencyFromRow(EmergencyAccessRow row) =>

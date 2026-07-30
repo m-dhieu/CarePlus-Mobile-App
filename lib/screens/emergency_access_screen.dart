@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/providers.dart';
 import '../widgets/shared_widgets.dart';
 
@@ -9,8 +10,7 @@ class EmergencyAccessScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // final code = ref.watch(emergencyAccessProvider);
-    final codeState = ref.watch(emergencyAccessProvider); // added
+    final code = ref.watch(emergencyAccessProvider);
     final user = ref.watch(userProfileProvider);
     void back() => ref.read(screenProvider.notifier).go('profile');
 
@@ -52,226 +52,89 @@ class EmergencyAccessScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
 
                 // Active code card
-                // if (code != null && !code.isExpired) ...[
-                //   Container(
-                //     width: double.infinity,
-                //     padding: const EdgeInsets.all(24),
-                //     decoration: BoxDecoration(
-                //       gradient: const LinearGradient(colors: [teal600, teal700], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                //       borderRadius: BorderRadius.circular(24),
-                //     ),
-                //     child: Column(
-                //       children: [
-                //         const Text('ACTIVE ACCESS CODE', style: TextStyle(fontSize: 11, color: teal100, letterSpacing: 1)),
-                //         const SizedBox(height: 12),
-                //         Text(code.code,
-                //             style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 8)),
-                //         const SizedBox(height: 8),
-                //         Text('Scope: ${code.scope == 'full' ? 'Full records' : 'Summary only'}',
-                //             style: const TextStyle(fontSize: 12, color: teal100)),
-                //         Text('Expires: ${_formatExpiry(code.expiresAt)}',
-                //             style: const TextStyle(fontSize: 12, color: teal100)),
-                //         const SizedBox(height: 16),
-                //         Row(
-                //           children: [
-                //             Expanded(
-                //               child: GestureDetector(
-                //                 onTap: () {
-                //                   Clipboard.setData(ClipboardData(text: code.code));
-                //                   ref.read(toastProvider.notifier).show('Code copied to clipboard');
-                //                 },
-                //                 child: Container(
-                //                   padding: const EdgeInsets.symmetric(vertical: 10),
-                //                   decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(50)),
-                //                   child: const Row(
-                //                     mainAxisAlignment: MainAxisAlignment.center,
-                //                     children: [
-                //                       Icon(Icons.copy, size: 14, color: Colors.white),
-                //                       SizedBox(width: 6),
-                //                       Text('Copy', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                //                     ],
-                //                   ),
-                //                 ),
-                //               ),
-                //             ),
-                //             const SizedBox(width: 12),
-                //             Expanded(
-                //               child: GestureDetector(
-                //                 onTap: () => ref.read(emergencyAccessProvider.notifier).revoke(),
-                //                 child: Container(
-                //                   padding: const EdgeInsets.symmetric(vertical: 10),
-                //                   decoration: BoxDecoration(
-                //                     border: Border.all(color: Colors.white54),
-                //                     borderRadius: BorderRadius.circular(50),
-                //                   ),
-                //                   child: const Text('Revoke', textAlign: TextAlign.center,
-                //                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                //                 ),
-                //               ),
-                //             ),
-                //           ],
-                //         ),
-                //       ],
-                //     ),
-                //   ),
-                // ] else ...[
-                //   const Text('Generate Access Code', style: TextStyle(fontWeight: FontWeight.w800, color: slate900)),
-                //   const SizedBox(height: 8),
-                //   const Text('A first responder or ER doctor can use this code to view your records for 30 minutes.',
-                //       style: TextStyle(fontSize: 13, color: slate500, height: 1.5)),
-                //   const SizedBox(height: 16),
-                //   _ScopeButton(
-                //     label: 'Summary only',
-                //     subtitle: 'Blood type, allergies, conditions, current meds',
-                //     icon: Icons.summarize,
-                //     onTap: () => ref.read(emergencyAccessProvider.notifier).generate('summary'),
-                //   ),
-                //   const SizedBox(height: 10),
-                //   _ScopeButton(
-                //     label: 'Full records',
-                //     subtitle: 'Complete medical history, documents, lab results',
-                //     icon: Icons.folder_open,
-                //     onTap: () => ref.read(emergencyAccessProvider.notifier).generate('full'),
-                //   ),
-                // ],
-                codeState.when( // added
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(
-                      color: teal600,
+                if (code != null && !code.isExpired) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [teal600, teal700], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                      borderRadius: BorderRadius.circular(24),
                     ),
-                  ),
-                  error: (error, stack) =>
-                    const Text(
-                      'Unable to load emergency access',
-                      style: TextStyle(
-                        color: slate500,
-                      ),
-                    ),
-                  data: (code) {
-                    if (code != null && !code.isExpired) {
-                      return Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(colors: [teal600, teal700,], begin: Alignment.topLeft, end: Alignment.bottomRight,)
-                          borderRadius: BorderRadius.circular(24),
-                        )
-                        child: Column(
+                    child: Column(
+                      children: [
+                        const Text('ACTIVE ACCESS CODE', style: TextStyle(fontSize: 11, color: teal100, letterSpacing: 1)),
+                        const SizedBox(height: 12),
+                        Text(code.code,
+                            style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 8)),
+                        const SizedBox(height: 8),
+                        Text('Scope: ${code.scope == 'full' ? 'Full records' : 'Summary only'}',
+                            style: const TextStyle(fontSize: 12, color: teal100)),
+                        Text('Expires: ${_formatExpiry(code.expiresAt)}',
+                            style: const TextStyle(fontSize: 12, color: teal100)),
+                        const SizedBox(height: 16),
+                        Row(
                           children: [
-                            const Text(
-                              'ACTIVE ACCESS CODE',
-                              style: TextStyle(fontSize: 11, color: teal100, letterSpacing: 1,),),
-                            const SizedBox(height: 12,),
-                            Text(
-                              code.code,
-                              style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w900, Colors.white, letterSpacing: 8,),
-                            ),
-                            const SizedBox(height: 8,),
-                            Text(
-                              'Scope: ${code.scope == 'full' ? 'Full records' : 'Summary only'}',
-                              style: const TextStyle(fontSize: 12, color: teal100,),
-                            ),
-                            Text(
-                              'Expires: ${_formatExpiry(code.expiresAt)}',
-                              style: const TextStyle(fontSize: 12, color: teal100,),
-                            ),
-                            const SizedBox(height: 16,),
-                            Row(children: [Expanded(child: GestureDetector(
-                              onTap: (){Clipboard.setData(ClipboardData(text: code.code,);
-                              ref
-                                .read(toastProvider.notifier,)
-                                .show('Code copied to clipboard',);)
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 10,),
-                                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(50),),
-                                child: const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.copy, size: 14, color: Colors.white,),
-                                    SizedBox(width: 6,),
-                                    Text('copy', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700,),),
-                                  ],
-                                ),
-                              ),
-                            ),),
-                            const SizedBox(width: 12,),
                             Expanded(
                               child: GestureDetector(
-                                onTap: () => ref
-                                  .read(
-                                    emergencyAccessProvider
-                                    .notifier,
-                                  )
-                                  .revokeCode(),
+                                onTap: () {
+                                  Clipboard.setData(ClipboardData(text: code.code));
+                                  ref.read(toastProvider.notifier).show('Code copied to clipboard');
+                                },
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 10,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                      color: Colors.white54,
-                                    ),
-                                    borderRadius:
-                                      BorderRadius.circular(50),
-                                  ),
-                                  child: const Text(
-                                    'Revoke',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(50)),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.copy, size: 14, color: Colors.white),
+                                      SizedBox(width: 6),
+                                      Text('Copy', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                                    ],
                                   ),
                                 ),
                               ),
-                            ),  
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => ref.read(emergencyAccessProvider.notifier).revoke(),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.white54),
+                                    borderRadius: BorderRadius.circular(50),
+                                  ),
+                                  child: const Text('Revoke', textAlign: TextAlign.center,
+                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ],
                     ),
-                  );
-                  }
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Generate Access Code',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          color: slate900,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'A first responder or ER doctor can use this code to view your records for 30 minutes.',
-                        style: TextStyle(fontSize: 13, color: slate500, height: 1.5,),
-                      ),
-                      const SizedBox(height: 16),
-                      _ScopeButton(
-                        label: 'Summary only',
-                        subtitle:
-                          'Blood type, allergies, conditions, current meds',
-                        icon: Icons.summarize,
-                        onTap: () => ref
-                        .read(emergencyAccessProvider.notifier,)
-                        .generateCode('summary',),
-                      ),
-                      const SizedBox(height: 10),
-                      _ScopeButton(
-                        label: 'Full records',
-                        subtitle:
-                          'Complete medical history, documents, lab results',
-                        icon: Icons.folder_open,
-                        onTap: () => ref
-                          .read(emergencyAccessProvider.notifier,)
-                          .generateCode('full',),
-                      ),
-                    ],
                   ),
-                  },
-                ), // added
-                
+                ] else ...[
+                  const Text('Generate Access Code', style: TextStyle(fontWeight: FontWeight.w800, color: slate900)),
+                  const SizedBox(height: 8),
+                  const Text('A first responder or ER doctor can use this code to view your records for 30 minutes.',
+                      style: TextStyle(fontSize: 13, color: slate500, height: 1.5)),
+                  const SizedBox(height: 16),
+                  _ScopeButton(
+                    label: 'Summary only',
+                    subtitle: 'Blood type, allergies, conditions, current meds',
+                    icon: Icons.summarize,
+                    onTap: () => ref.read(emergencyAccessProvider.notifier).generate('summary'),
+                  ),
+                  const SizedBox(height: 10),
+                  _ScopeButton(
+                    label: 'Full records',
+                    subtitle: 'Complete medical history, documents, lab results',
+                    icon: Icons.folder_open,
+                    onTap: () => ref.read(emergencyAccessProvider.notifier).generate('full'),
+                  ),
+                ],
+
                 const SizedBox(height: 24),
                 const Text('Emergency Contacts', style: TextStyle(fontWeight: FontWeight.w800, color: slate900)),
                 const SizedBox(height: 8),
@@ -279,9 +142,34 @@ class EmergencyAccessScreen extends ConsumerWidget {
                   name: user.emergencyContact.name,
                   subtitle: '${user.emergencyContact.relation} · ${user.emergencyContact.phone}',
                   icon: Icons.person,
+                  onCall: () async {
+                    final phone = user.emergencyContact.phone;
+                    final cleaned =
+                        phone.trim().replaceAll(RegExp(r'[^\d+]'), '');
+                    final ok = cleaned.isNotEmpty &&
+                        cleaned != '—' &&
+                        await launchUrl(Uri(scheme: 'tel', path: cleaned));
+                    if (!ok) {
+                      ref.read(toastProvider.notifier).show(
+                            'No dialer available for "$phone"',
+                          );
+                    }
+                  },
                 ),
                 const SizedBox(height: 8),
-                _ContactTile(name: 'Emergency Services', subtitle: 'Call 112', icon: Icons.local_hospital),
+                _ContactTile(
+                  name: 'Emergency Services',
+                  subtitle: 'Call 112',
+                  icon: Icons.local_hospital,
+                  onCall: () async {
+                    final ok = await launchUrl(Uri(scheme: 'tel', path: '112'));
+                    if (!ok) {
+                      ref.read(toastProvider.notifier).show(
+                            'No dialer available for 112',
+                          );
+                    }
+                  },
+                ),
               ],
             ),
           ),
@@ -344,7 +232,13 @@ class _ContactTile extends StatelessWidget {
   final String name;
   final String subtitle;
   final IconData icon;
-  const _ContactTile({required this.name, required this.subtitle, required this.icon});
+  final VoidCallback? onCall;
+  const _ContactTile({
+    required this.name,
+    required this.subtitle,
+    required this.icon,
+    this.onCall,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -363,11 +257,33 @@ class _ContactTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: slate900)),
-                Text(subtitle, style: const TextStyle(fontSize: 11, color: slate400)),
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: slate900),
+                ),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 11, color: slate400),
+                ),
               ],
             ),
           ),
+          if (onCall != null)
+            GestureDetector(
+              onTap: onCall,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(color: teal600, borderRadius: BorderRadius.circular(50)),
+                child: const Text(
+                  'Call',
+                  style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
         ],
       ),
     );

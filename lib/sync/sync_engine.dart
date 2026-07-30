@@ -245,6 +245,13 @@ class SyncEngine {
                 name: data['name'] as String? ?? '',
                 source: data['source'] as String? ?? '',
                 ocrText: Value(data['ocrText'] as String?),
+                storagePath: Value(data['storagePath'] as String?),
+                downloadUrl: Value(data['downloadUrl'] as String?),
+                mimeType: Value(data['mimeType'] as String?),
+                sizeBytes: Value((data['sizeBytes'] as num?)?.toInt()),
+                createdAt: Value(
+                  DateTime.tryParse(data['createdAt'] as String? ?? ''),
+                ),
                 updatedAt: updatedAt,
                 syncStatus: const Value(SyncStatuses.synced),
                 deletedAt: Value(deletedAt),
@@ -264,6 +271,10 @@ class SyncEngine {
                 notificationsEnabled: Value(
                   data['notificationsEnabled'] as bool? ?? true,
                 ),
+                status: Value(data['status'] as String? ?? 'pending'),
+                invitedAt: Value(
+                  DateTime.tryParse(data['invitedAt'] as String? ?? ''),
+                ),
                 updatedAt: updatedAt,
                 syncStatus: const Value(SyncStatuses.synced),
                 deletedAt: Value(deletedAt),
@@ -278,6 +289,7 @@ class SyncEngine {
                 userId: uid,
                 name: data['name'] as String? ?? '',
                 initials: data['initials'] as String? ?? '',
+                phone: Value(data['phone'] as String? ?? '—'),
                 age: (data['age'] as num?)?.toInt() ?? 0,
                 bloodType: data['bloodType'] as String? ?? '',
                 height: data['height'] as String? ?? '',
@@ -325,6 +337,10 @@ class SyncEngine {
                 expiresAt:
                     DateTime.tryParse(data['expiresAt'] as String? ?? '') ??
                     updatedAt,
+                redeemed: Value(data['redeemed'] as bool? ?? false),
+                redeemedAt: Value(
+                  DateTime.tryParse(data['redeemedAt'] as String? ?? ''),
+                ),
                 updatedAt: updatedAt,
                 syncStatus: const Value(SyncStatuses.synced),
                 deletedAt: Value(deletedAt),
@@ -342,6 +358,10 @@ class SyncEngine {
                     DateTime.tryParse(data['expiresAt'] as String? ?? '') ??
                     updatedAt,
                 scope: data['scope'] as String? ?? 'summary',
+                redeemed: Value(data['redeemed'] as bool? ?? false),
+                redeemedAt: Value(
+                  DateTime.tryParse(data['redeemedAt'] as String? ?? ''),
+                ),
                 updatedAt: updatedAt,
                 syncStatus: const Value(SyncStatuses.synced),
                 deletedAt: Value(deletedAt),
@@ -412,6 +432,9 @@ class SyncEngine {
             syncStatus: Value(SyncStatuses.synced),
           ),
         );
+      case EntityTypes.users:
+        // Registry lives only in Firestore (no Drift row to mark)
+        break;
     }
   }
 
@@ -419,7 +442,11 @@ class SyncEngine {
     String uid,
     String type,
   ) {
-    // profile stored as collection too (doc id = profile-{uid})
+    // Top-level Care+ user registry (seed schema: users/user_00N)
+    if (type == EntityTypes.users) {
+      return _fs.collection(EntityTypes.users);
+    }
+    // Nested care data: users/{authUid}/{entityType}
     return _fs.collection('users').doc(uid).collection(type);
   }
 
@@ -428,6 +455,9 @@ class SyncEngine {
     String type,
     String id,
   ) {
+    if (type == EntityTypes.users) {
+      return _fs.collection(EntityTypes.users).doc(id);
+    }
     return _collection(uid, type).doc(id);
   }
 

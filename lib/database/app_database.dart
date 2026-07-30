@@ -25,7 +25,34 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) async => m.createAll(),
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(userProfiles, userProfiles.phone as GeneratedColumn);
+        await m.addColumn(documents, documents.storagePath as GeneratedColumn);
+        await m.addColumn(documents, documents.downloadUrl as GeneratedColumn);
+        await m.addColumn(documents, documents.mimeType as GeneratedColumn);
+        await m.addColumn(documents, documents.sizeBytes as GeneratedColumn);
+        await m.addColumn(documents, documents.createdAt as GeneratedColumn);
+        await m.addColumn(caregivers, caregivers.status as GeneratedColumn);
+        await m.addColumn(caregivers, caregivers.invitedAt as GeneratedColumn);
+        await m.addColumn(shareTokens, shareTokens.redeemed as GeneratedColumn);
+        await m.addColumn(shareTokens, shareTokens.redeemedAt as GeneratedColumn);
+        await m.addColumn(
+          emergencyAccessCodes,
+          emergencyAccessCodes.redeemed as GeneratedColumn,
+        );
+        await m.addColumn(
+          emergencyAccessCodes,
+          emergencyAccessCodes.redeemedAt as GeneratedColumn,
+        );
+      }
+    },
+  );
 
   static QueryExecutor _openConnection() {
     return driftDatabase(

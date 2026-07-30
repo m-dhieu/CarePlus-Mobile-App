@@ -1,12 +1,5 @@
 import 'package:flutter/material.dart';
 export 'medication_model.dart'; // added
-export 'journal.dart'; // added
-export 'reminder.dart'; // added
-export 'document.dart'; // added
-export 'metric.dart'; // added
-export 'profile.dart'; // added
-export 'caregiver.dart'; // added
-export 'emergency_access.dart'; // added
 
 // ── Auth / Onboarding ────────────────────────────────────────────────────────
 
@@ -19,51 +12,83 @@ class OnboardingPage {
 
 // ── User ─────────────────────────────────────────────────────────────────────
 
-// class UserProfile {
-//   final String name;
-//   final String initials;
-//   final int age;
-//   final String bloodType;
-//   final String height;
-//   final String patientId;
-//   final String hba1c;
-//   final String bpAvg;
-//   final String weight;
-//   final List<String> allergies;
-//   final EmergencyContact emergencyContact;
+class UserProfile {
+  final String name;
+  final String initials;
+  final String phone;
+  final int age;
+  final String bloodType;
+  final String height;
+  final String patientId;
+  final String hba1c;
+  final String bpAvg;
+  final String weight;
+  final List<String> allergies;
+  final EmergencyContact emergencyContact;
 
-//   const UserProfile({
-//     required this.name,
-//     required this.initials,
-//     required this.age,
-//     required this.bloodType,
-//     required this.height,
-//     required this.patientId,
-//     required this.hba1c,
-//     required this.bpAvg,
-//     required this.weight,
-//     required this.allergies,
-//     required this.emergencyContact,
-//   });
-// }
+  const UserProfile({
+    required this.name,
+    required this.initials,
+    required this.phone,
+    required this.age,
+    required this.bloodType,
+    required this.height,
+    required this.patientId,
+    required this.hba1c,
+    required this.bpAvg,
+    required this.weight,
+    required this.allergies,
+    required this.emergencyContact,
+  });
+
+  UserProfile copyWith({
+    String? name,
+    String? initials,
+    String? phone,
+    int? age,
+    String? bloodType,
+    String? height,
+    String? patientId,
+    String? hba1c,
+    String? bpAvg,
+    String? weight,
+    List<String>? allergies,
+    EmergencyContact? emergencyContact,
+  }) {
+    return UserProfile(
+      name: name ?? this.name,
+      initials: initials ?? this.initials,
+      phone: phone ?? this.phone,
+      age: age ?? this.age,
+      bloodType: bloodType ?? this.bloodType,
+      height: height ?? this.height,
+      patientId: patientId ?? this.patientId,
+      hba1c: hba1c ?? this.hba1c,
+      bpAvg: bpAvg ?? this.bpAvg,
+      weight: weight ?? this.weight,
+      allergies: allergies ?? this.allergies,
+      emergencyContact: emergencyContact ?? this.emergencyContact,
+    );
+  }
+}
 
 // ── Emergency ────────────────────────────────────────────────────────────────
 
-// class EmergencyContact {
-//   final String name;
-//   final String relation;
-//   final String phone;
-//   const EmergencyContact({required this.name, required this.relation, required this.phone});
-// }
+class EmergencyContact {
+  final String name;
+  final String relation;
+  final String phone;
+  const EmergencyContact({required this.name, required this.relation, required this.phone});
+}
 
-// class EmergencyAccessCode {
-//   final String code;
-//   final DateTime expiresAt;
-//   final String scope; // 'full' | 'summary'
-//   EmergencyAccessCode({required this.code, required this.expiresAt, required this.scope});
+class EmergencyAccessCode {
+  final String code;
+  final DateTime expiresAt;
+  final String scope; // 'full' | 'summary'
+  EmergencyAccessCode({required this.code, required this.expiresAt, required this.scope});
 
-//   bool get isExpired => DateTime.now().isAfter(expiresAt);
-// }
+  bool get isExpired => DateTime.now().isAfter(expiresAt);
+}
 
 // ── Medications / Reminders ───────────────────────────────────────────────────
 
@@ -113,101 +138,155 @@ class Reminder {
 
 // ── Journal ───────────────────────────────────────────────────────────────────
 
-// class JournalEntry {
-//   final String id;
-//   final String type; // Visit | Lab | Prescription | Procedure
-//   final String date;
-//   final String facility;
-//   final String title;
-//   final String person;
-//   final String note;
-//   final List<String> tags;
-//   final IconData icon;
-//   JournalEntry({
-//     required this.id,
-//     required this.type,
-//     required this.date,
-//     required this.facility,
-//     required this.title,
-//     required this.person,
-//     required this.note,
-//     required this.tags,
-//     required this.icon,
-//   });
-// }
+class JournalEntry {
+  final String id;
+  final String type; // Visit | Lab | Prescription | Procedure
+  final String date;
+  final String facility;
+  final String title;
+  final String person;
+  final String note;
+  final List<String> tags;
+  final IconData icon;
+  JournalEntry({
+    required this.id,
+    required this.type,
+    required this.date,
+    required this.facility,
+    required this.title,
+    required this.person,
+    required this.note,
+    required this.tags,
+    required this.icon,
+  });
+}
 
 // ── Records / Documents ───────────────────────────────────────────────────────
 
-// class MedicalDocument {
-//   final String id;
-//   final IconData icon;
-//   final String name;
-//   final String source;
-//   final String? ocrText; // populated after OCR import
-//   MedicalDocument({required this.id, required this.icon, required this.name, required this.source, this.ocrText});
+class MedicalDocument {
+  final String id;
+  final IconData icon;
+  final String name;
+  final String source;
+  final String? ocrText; // populated after OCR import
+  final String? storagePath;
+  final String? downloadUrl;
+  final String? mimeType;
+  final int? sizeBytes;
+  final DateTime? createdAt;
+  MedicalDocument({
+    required this.id,
+    required this.icon,
+    required this.name,
+    required this.source,
+    this.ocrText,
+    this.storagePath,
+    this.downloadUrl,
+    this.mimeType,
+    this.sizeBytes,
+    this.createdAt,
+  });
 
-//   MedicalDocument copyWith({String? ocrText}) =>
-//       MedicalDocument(id: id, icon: icon, name: name, source: source, ocrText: ocrText ?? this.ocrText);
-// }
+  MedicalDocument copyWith({
+    String? ocrText,
+    String? storagePath,
+    String? downloadUrl,
+    String? mimeType,
+    int? sizeBytes,
+    DateTime? createdAt,
+  }) => MedicalDocument(
+      id: id,
+      icon: icon,
+      name: name,
+      source: source,
+      ocrText: ocrText ?? this.ocrText,
+      storagePath: storagePath ?? this.storagePath,
+      downloadUrl: downloadUrl ?? this.downloadUrl,
+      mimeType: mimeType ?? this.mimeType,
+      sizeBytes: sizeBytes ?? this.sizeBytes,
+      createdAt: createdAt ?? this.createdAt,
+    );
+}
 
-// class RecordShareToken {
-//   final String token;
-//   final String doctorName;
-//   final DateTime expiresAt;
-//   RecordShareToken({required this.token, required this.doctorName, required this.expiresAt});
-//   bool get isExpired => DateTime.now().isAfter(expiresAt);
-// }
+class RecordShareToken {
+  final String id;
+  final String token;
+  final String doctorName;
+  final DateTime expiresAt;
+  final bool redeemed;
+  final DateTime? redeemedAt;
+  RecordShareToken({
+    required this.id,
+    required this.token,
+    required this.doctorName,
+    required this.expiresAt,
+    this.redeemed = false,
+    this.redeemedAt,
+  });
+  bool get isExpired => DateTime.now().isAfter(expiresAt);
+}
 
 // ── Caregiver ─────────────────────────────────────────────────────────────────
 
-// enum CaregiverRole { fullAccess, viewOnly, medsOnly }
+enum CaregiverRole { fullAccess, viewOnly, medsOnly }
 
-// class Caregiver {
-//   final String id;
-//   final String name;
-//   final String relation;
-//   final String phone;
-//   final CaregiverRole role;
-//   final bool notificationsEnabled;
-//   Caregiver({
-//     required this.id,
-//     required this.name,
-//     required this.relation,
-//     required this.phone,
-//     required this.role,
-//     this.notificationsEnabled = true,
-//   });
+class Caregiver {
+  final String id;
+  final String name;
+  final String relation;
+  final String phone;
+  final CaregiverRole role;
+  final bool notificationsEnabled;
+  final String status;
+  final DateTime? invitedAt;
+  Caregiver({
+    required this.id,
+    required this.name,
+    required this.relation,
+    required this.phone,
+    required this.role,
+    this.notificationsEnabled = true,
+    this.status = 'pending',
+    this.invitedAt,
+  });
 
-//   Caregiver copyWith({CaregiverRole? role, bool? notificationsEnabled}) => Caregiver(
-//         id: id, name: name, relation: relation, phone: phone,
-//         role: role ?? this.role,
-//         notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
-//       );
+  Caregiver copyWith({
+    CaregiverRole? role,
+    bool? notificationsEnabled,
+    String? status,
+    DateTime? invitedAt,
+  }) => Caregiver(
+        id: id, name: name, relation: relation, phone: phone,
+        role: role ?? this.role,
+        notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+        status: status ?? this.status,
+        invitedAt: invitedAt ?? this.invitedAt,
+      );
 
-//   String get roleLabel {
-//     switch (role) {
-//       case CaregiverRole.fullAccess: return 'Full access';
-//       case CaregiverRole.viewOnly:   return 'View only';
-//       case CaregiverRole.medsOnly:   return 'Meds only';
-//     }
-//   }
-// }
+  String get roleLabel {
+    switch (role) {
+      case CaregiverRole.fullAccess: return 'Full access';
+      case CaregiverRole.viewOnly:   return 'View only';
+      case CaregiverRole.medsOnly:   return 'Meds only';
+    }
+  }
+}
 
 // ── Metrics ───────────────────────────────────────────────────────────────────
 
-// class MetricPoint {
-//   final DateTime date;
-//   final double value;
-//   const MetricPoint({required this.date, required this.value});
-// }
+class MetricPoint {
+  final DateTime date;
+  final double value;
+  const MetricPoint({required this.date, required this.value});
+}
 
-// class MetricSeries {
-//   final String label;
-//   final String unit;
-//   final List<MetricPoint> points;
-//   const MetricSeries({required this.label, required this.unit, required this.points});
+class MetricSeries {
+  final String label;
+  final String unit;
+  final List<MetricPoint> points;
+  const MetricSeries({required this.label, required this.unit, required this.points});
 
-//   double get latest => points.isEmpty ? 0 : points.last.value;
-//   double get min => points.isEmpty ? 0 : points.map((p) => p.value).reduce((a, b) => a < b ? a : b);
-//   double get max => points.isEmpty ? 0 : points.map((p) => p.value).reduce((a, b) => a > b ? a : b);
-// }
+  double get latest => points.isEmpty ? 0 : points.last.value;
+  double get min => points.isEmpty ? 0 : points.map((p) => p.value).reduce((a, b) => a < b ? a : b);
+  double get max => points.isEmpty ? 0 : points.map((p) => p.value).reduce((a, b) => a > b ? a : b);
+}

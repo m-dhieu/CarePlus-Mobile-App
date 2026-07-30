@@ -177,6 +177,11 @@ async function main() {
     status: stringValue('active'),
   });
 
+  // Next Care+ public id after seeded user_001 / user_002 (app: CareUserIdService).
+  await upsertDoc(token, 'meta', 'user_counter', {
+    next: intValue(3),
+  });
+
   // --- patient_profiles ---
   await upsertDoc(token, 'patient_profiles', PATIENT_UID, {
     patientId: stringValue(PATIENT_UID),
@@ -303,6 +308,7 @@ async function main() {
   console.log(
     [
       'users',
+      'meta/user_counter (next=3)',
       'patient_profiles',
       'providers',
       'facilities',

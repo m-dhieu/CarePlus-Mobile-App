@@ -7,20 +7,51 @@ import 'package:uuid/uuid.dart';
 import '../database/app_database.dart';
 import '../database/mappers.dart';
 import '../models/models.dart';
+import '../services/care_user_id_service.dart';
 import '../sync/outbox_service.dart';
 import '../sync/sync_constants.dart';
 
 typedef SyncRequest = void Function();
 
 class CareRepository {
-  CareRepository(this._db, this._outbox, {this.onDirty});
+  CareRepository(
+    this._db,
+    this._outbox, {
+    this.onDirty,
+    CareUserIdService? careUserIds,
+  }) : _careUserIds = careUserIds ?? CareUserIdService();
 
   final AppDatabase _db;
   final OutboxService _outbox;
   final SyncRequest? onDirty;
+  final CareUserIdService _careUserIds;
   static const _uuid = Uuid();
 
   void _nudge() => onDirty?.call();
+
+  Future<String> _allocatePatientId() => _careUserIds.allocate();
+
+  Future<void> _enqueueUserRegistry({
+    required String authUid,
+    required String careUserId,
+    required String fullName,
+    required String email,
+    required String phone,
+  }) async {
+    await _outbox.enqueue(
+      userId: authUid,
+      entityType: EntityTypes.users,
+      entityId: careUserId,
+      operation: SyncOps.create,
+      payload: _careUserIds.registryPayload(
+        careUserId: careUserId,
+        authUid: authUid,
+        fullName: fullName,
+        email: email,
+        phone: phone,
+      ),
+    );
+  }
 
   // ── Medications ────────────────────────────────────────────────────────────
 
@@ -242,6 +273,11 @@ class CareRepository {
           name: doc.name,
           source: doc.source,
           ocrText: Value(doc.ocrText),
+          storagePath: Value(doc.storagePath),
+          downloadUrl: Value(doc.downloadUrl),
+          mimeType: Value(doc.mimeType),
+          sizeBytes: Value(doc.sizeBytes),
+          createdAt: Value(doc.createdAt ?? now),
           updatedAt: now,
           syncStatus: const Value(SyncStatuses.pending),
         ));
@@ -281,6 +317,38 @@ class CareRepository {
     _nudge();
   }
 
+  Future<void> updateDocumentRemote(
+    String userId,
+    String id, {
+    String? storagePath,
+    String? downloadUrl,
+    String? mimeType,
+    int? sizeBytes,
+  }) async {
+    final row = await (_db.select(_db.documents)
+          ..where((t) => t.id.equals(id) & t.userId.equals(userId)))
+        .getSingleOrNull();
+    if (row == null) return;
+    final now = DateTime.now().toUtc();
+    final updated = row.copyWith(
+      storagePath: Value(storagePath ?? row.storagePath),
+      downloadUrl: Value(downloadUrl ?? row.downloadUrl),
+      mimeType: Value(mimeType ?? row.mimeType),
+      sizeBytes: Value(sizeBytes ?? row.sizeBytes),
+      updatedAt: now,
+      syncStatus: SyncStatuses.pending,
+    );
+    await _db.update(_db.documents).replace(updated);
+    await _outbox.enqueue(
+      userId: userId,
+      entityType: EntityTypes.documents,
+      entityId: id,
+      operation: SyncOps.update,
+      payload: _documentPayload(updated),
+    );
+    _nudge();
+  }
+
   // ── Caregivers ─────────────────────────────────────────────────────────────
 
   Stream<List<Caregiver>> watchCaregivers(String userId) {
@@ -301,6 +369,8 @@ class CareRepository {
           phone: c.phone,
           role: c.role.name,
           notificationsEnabled: Value(c.notificationsEnabled),
+          status: Value(c.status),
+          invitedAt: Value(c.invitedAt ?? now),
           updatedAt: now,
           syncStatus: const Value(SyncStatuses.pending),
         ));
@@ -384,6 +454,32 @@ class CareRepository {
     _nudge();
   }
 
+  Future<void> updateCaregiverStatus(
+    String userId,
+    String id,
+    String status,
+  ) async {
+    final row = await (_db.select(_db.caregivers)
+          ..where((t) => t.id.equals(id) & t.userId.equals(userId)))
+        .getSingleOrNull();
+    if (row == null) return;
+    final now = DateTime.now().toUtc();
+    final updated = row.copyWith(
+      status: status,
+      updatedAt: now,
+      syncStatus: SyncStatuses.pending,
+    );
+    await _db.update(_db.caregivers).replace(updated);
+    await _outbox.enqueue(
+      userId: userId,
+      entityType: EntityTypes.caregivers,
+      entityId: id,
+      operation: SyncOps.update,
+      payload: _caregiverPayload(updated),
+    );
+    _nudge();
+  }
+
   // ── Profile ────────────────────────────────────────────────────────────────
 
   Stream<UserProfile?> watchProfile(String userId) {
@@ -395,6 +491,8 @@ class CareRepository {
   }
 
   /// Creates a blank per-user profile once (from Auth display name / email).
+  /// Assigns Care+ public id `user_00N` (seed schema) as [patientId] and queues
+  /// a top-level `users/{user_00N}` registry doc for sync.
   /// Existing Drift or Firestore profiles are left untouched.
   Future<void> ensureProfile(
     String userId, {
@@ -410,16 +508,18 @@ class CareRepository {
     final name = _displayName(displayName, email);
     final now = DateTime.now().toUtc();
     final id = 'profile-$userId';
-    final short = userId.length >= 6 ? userId.substring(0, 6) : userId;
+    final patientId = await _allocatePatientId();
+    final mail = email?.trim() ?? '';
     await _db.into(_db.userProfiles).insert(UserProfilesCompanion.insert(
           id: id,
           userId: userId,
           name: name,
           initials: _initials(name),
+          phone: const Value('—'),
           age: 0,
           bloodType: '—',
           height: '—',
-          patientId: 'CP-${short.toUpperCase()}',
+          patientId: patientId,
           hba1c: '—',
           bpAvg: '—',
           weight: '—',
@@ -439,6 +539,85 @@ class CareRepository {
       entityId: id,
       operation: SyncOps.create,
       payload: _profilePayload(row),
+    );
+    await _enqueueUserRegistry(
+      authUid: userId,
+      careUserId: patientId,
+      fullName: name,
+      email: mail,
+      phone: '—',
+    );
+    _nudge();
+  }
+
+  Future<void> upsertProfile(
+    String userId, {
+    required String name,
+    required String phone,
+    String? email,
+    int? age,
+    String? bloodType,
+    String? height,
+    String? hba1c,
+    String? bpAvg,
+    String? weight,
+    List<String>? allergies,
+    EmergencyContact? emergencyContact,
+  }) async {
+    final existing = await (_db.select(_db.userProfiles)
+          ..where((t) => t.userId.equals(userId) & t.deletedAt.isNull())
+          ..limit(1))
+        .getSingleOrNull();
+    final currentAllergies = existing == null
+        ? const <String>[]
+        : profileFromRow(existing).allergies;
+    final now = DateTime.now().toUtc();
+    final id = existing?.id ?? 'profile-$userId';
+    final isNew = existing == null;
+    final patientId = existing?.patientId ?? await _allocatePatientId();
+    final trimmedName = name.trim().isEmpty ? 'User' : name.trim();
+    final trimmedPhone = phone.trim().isEmpty ? '—' : phone.trim();
+    await _db.into(_db.userProfiles).insertOnConflictUpdate(
+          UserProfilesCompanion.insert(
+            id: id,
+            userId: userId,
+            name: trimmedName,
+            initials: _initials(trimmedName),
+            phone: Value(trimmedPhone),
+            age: age ?? existing?.age ?? 0,
+            bloodType: bloodType ?? existing?.bloodType ?? '—',
+            height: height ?? existing?.height ?? '—',
+            patientId: patientId,
+            hba1c: hba1c ?? existing?.hba1c ?? '—',
+            bpAvg: bpAvg ?? existing?.bpAvg ?? '—',
+            weight: weight ?? existing?.weight ?? '—',
+            allergies: jsonEncode(allergies ?? currentAllergies),
+            emergencyName:
+                emergencyContact?.name ?? existing?.emergencyName ?? '—',
+            emergencyRelation:
+                emergencyContact?.relation ?? existing?.emergencyRelation ?? '—',
+            emergencyPhone:
+                emergencyContact?.phone ?? existing?.emergencyPhone ?? '—',
+            updatedAt: now,
+            syncStatus: const Value(SyncStatuses.pending),
+          ),
+        );
+    final row = await (_db.select(_db.userProfiles)
+          ..where((t) => t.id.equals(id)))
+        .getSingle();
+    await _outbox.enqueue(
+      userId: userId,
+      entityType: EntityTypes.profile,
+      entityId: id,
+      operation: isNew ? SyncOps.create : SyncOps.update,
+      payload: _profilePayload(row),
+    );
+    await _enqueueUserRegistry(
+      authUid: userId,
+      careUserId: patientId,
+      fullName: trimmedName,
+      email: email?.trim() ?? '',
+      phone: trimmedPhone,
     );
     _nudge();
   }
@@ -486,6 +665,7 @@ class CareRepository {
           token: token,
           doctorName: doctorName,
           expiresAt: expires,
+          redeemed: const Value(false),
           updatedAt: now,
           syncStatus: const Value(SyncStatuses.pending),
         ));
@@ -501,6 +681,29 @@ class CareRepository {
     );
     _nudge();
     return shareTokenFromRow(row);
+  }
+
+  Future<void> markShareTokenRedeemed(String userId, String tokenId) async {
+    final row = await (_db.select(_db.shareTokens)
+          ..where((t) => t.id.equals(tokenId) & t.userId.equals(userId)))
+        .getSingleOrNull();
+    if (row == null) return;
+    final now = DateTime.now().toUtc();
+    final updated = row.copyWith(
+      redeemed: true,
+      redeemedAt: Value(now),
+      updatedAt: now,
+      syncStatus: SyncStatuses.pending,
+    );
+    await _db.update(_db.shareTokens).replace(updated);
+    await _outbox.enqueue(
+      userId: userId,
+      entityType: EntityTypes.shareTokens,
+      entityId: tokenId,
+      operation: SyncOps.update,
+      payload: _sharePayload(updated),
+    );
+    _nudge();
   }
 
   Future<void> revokeShareToken(String userId, String token) async {
@@ -571,6 +774,7 @@ class CareRepository {
           code: code,
           expiresAt: expires,
           scope: scope,
+          redeemed: const Value(false),
           updatedAt: now,
           syncStatus: const Value(SyncStatuses.pending),
         ));
@@ -586,6 +790,29 @@ class CareRepository {
     );
     _nudge();
     return emergencyFromRow(row);
+  }
+
+  Future<void> markEmergencyRedeemed(String userId, String codeId) async {
+    final row = await (_db.select(_db.emergencyAccessCodes)
+          ..where((t) => t.id.equals(codeId) & t.userId.equals(userId)))
+        .getSingleOrNull();
+    if (row == null) return;
+    final now = DateTime.now().toUtc();
+    final updated = row.copyWith(
+      redeemed: true,
+      redeemedAt: Value(now),
+      updatedAt: now,
+      syncStatus: SyncStatuses.pending,
+    );
+    await _db.update(_db.emergencyAccessCodes).replace(updated);
+    await _outbox.enqueue(
+      userId: userId,
+      entityType: EntityTypes.emergencyAccess,
+      entityId: codeId,
+      operation: SyncOps.update,
+      payload: _emergencyPayload(updated),
+    );
+    _nudge();
   }
 
   Future<void> revokeEmergency(String userId) async {
@@ -620,6 +847,41 @@ class CareRepository {
         .map(metricsFromRows);
   }
 
+  Future<void> addMetricPoint(
+    String userId, {
+    required String seriesKey,
+    required String label,
+    required String unit,
+    required DateTime date,
+    required double value,
+  }) async {
+    final now = DateTime.now().toUtc();
+    final id = _uuid.v4();
+    await _db.into(_db.metricPoints).insert(
+          MetricPointsCompanion.insert(
+            id: id,
+            userId: userId,
+            seriesKey: seriesKey,
+            label: label,
+            unit: unit,
+            date: date.toUtc(),
+            value: value,
+            updatedAt: now,
+            syncStatus: const Value(SyncStatuses.pending),
+          ),
+        );
+    final row = await (_db.select(_db.metricPoints)..where((t) => t.id.equals(id)))
+        .getSingle();
+    await _outbox.enqueue(
+      userId: userId,
+      entityType: EntityTypes.metricPoints,
+      entityId: id,
+      operation: SyncOps.create,
+      payload: _metricPayload(row),
+    );
+    _nudge();
+  }
+
   // ── Payloads ───────────────────────────────────────────────────────────────
 
   Map<String, dynamic> _medicationPayload(MedicationRow r) => {
@@ -639,6 +901,7 @@ class CareRepository {
         'userId': r.userId,
         'name': r.name,
         'initials': r.initials,
+        'phone': r.phone,
         'age': r.age,
         'bloodType': r.bloodType,
         'height': r.height,
@@ -691,6 +954,11 @@ class CareRepository {
         'name': r.name,
         'source': r.source,
         'ocrText': r.ocrText,
+        'storagePath': r.storagePath,
+        'downloadUrl': r.downloadUrl,
+        'mimeType': r.mimeType,
+        'sizeBytes': r.sizeBytes,
+        'createdAt': r.createdAt?.toIso8601String(),
         'updatedAt': r.updatedAt.toIso8601String(),
         'syncStatus': r.syncStatus,
         'deletedAt': r.deletedAt?.toIso8601String(),
@@ -704,6 +972,8 @@ class CareRepository {
         'phone': r.phone,
         'role': r.role,
         'notificationsEnabled': r.notificationsEnabled,
+        'status': r.status,
+        'invitedAt': r.invitedAt?.toIso8601String(),
         'updatedAt': r.updatedAt.toIso8601String(),
         'syncStatus': r.syncStatus,
         'deletedAt': r.deletedAt?.toIso8601String(),
@@ -715,6 +985,8 @@ class CareRepository {
         'token': r.token,
         'doctorName': r.doctorName,
         'expiresAt': r.expiresAt.toIso8601String(),
+        'redeemed': r.redeemed,
+        'redeemedAt': r.redeemedAt?.toIso8601String(),
         'updatedAt': r.updatedAt.toIso8601String(),
         'syncStatus': r.syncStatus,
         'deletedAt': r.deletedAt?.toIso8601String(),
@@ -726,6 +998,21 @@ class CareRepository {
         'code': r.code,
         'expiresAt': r.expiresAt.toIso8601String(),
         'scope': r.scope,
+        'redeemed': r.redeemed,
+        'redeemedAt': r.redeemedAt?.toIso8601String(),
+        'updatedAt': r.updatedAt.toIso8601String(),
+        'syncStatus': r.syncStatus,
+        'deletedAt': r.deletedAt?.toIso8601String(),
+      };
+
+  Map<String, dynamic> _metricPayload(MetricPointRow r) => {
+        'id': r.id,
+        'userId': r.userId,
+        'seriesKey': r.seriesKey,
+        'label': r.label,
+        'unit': r.unit,
+        'date': r.date.toIso8601String(),
+        'value': r.value,
         'updatedAt': r.updatedAt.toIso8601String(),
         'syncStatus': r.syncStatus,
         'deletedAt': r.deletedAt?.toIso8601String(),

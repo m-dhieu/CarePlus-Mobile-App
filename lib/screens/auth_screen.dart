@@ -1,13 +1,8 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../features/auth/auth_providers.dart';
-import '../features/auth/validators.dart';
 import '../providers/providers.dart';
 import '../services/auth_errors.dart';
 import '../widgets/shared_widgets.dart';
-
-const _errorRed = Color(0xFFEF4444);
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -21,12 +16,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   bool _showPw = false;
   bool _showConfirmPw = false;
   bool _busy = false;
+  final _fullNameCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
 
   @override
   void dispose() {
+    _fullNameCtrl.dispose();
+    _phoneCtrl.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     _confirmCtrl.dispose();
@@ -34,6 +33,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   Future<void> _submit() async {
+    if (_busy) return;
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
     if (email.isEmpty || password.isEmpty) {
@@ -44,13 +44,30 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       ref.read(toastProvider.notifier).show('Passwords do not match');
       return;
     }
+    if (!_isLogin) {
+      if (_fullNameCtrl.text.trim().isEmpty) {
+        ref.read(toastProvider.notifier).show('Full name is required');
+        return;
+      }
+      if (_phoneCtrl.text.trim().isEmpty) {
+        ref.read(toastProvider.notifier).show('Phone number is required');
+        return;
+      }
+    }
 
     setState(() => _busy = true);
     try {
       if (_isLogin) {
         await ref.read(authProvider.notifier).login(email, password);
       } else {
-        await ref.read(authProvider.notifier).signUp(email, password);
+        await ref
+            .read(authProvider.notifier)
+            .register(
+              email: email,
+              password: password,
+              fullName: _fullNameCtrl.text,
+              phone: _phoneCtrl.text,
+            );
         ref
             .read(toastProvider.notifier)
             .show('Account created — you are signed in');
@@ -142,17 +159,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     const SizedBox(height: 24),
 
                     if (!_isLogin) ...[
-                      const _Field(
+                      _Field(
                         label: 'Full name',
                         placeholder: 'Enter your full name',
                         icon: Icons.person,
+                        controller: _fullNameCtrl,
                       ),
                       const SizedBox(height: 16),
-                      const _Field(
+                      _Field(
                         label: 'Phone number',
                         placeholder: '+250 788 000 000',
                         icon: Icons.phone,
                         keyboardType: TextInputType.phone,
+                        controller: _phoneCtrl,
                       ),
                       const SizedBox(height: 16),
                     ],
@@ -191,11 +210,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             setState(() => _showConfirmPw = !_showConfirmPw),
                         controller: _confirmCtrl,
                       ),
-                    ],
-
-                    if (_errorText != null) ...[
-                      const SizedBox(height: 12),
-                      Text(_errorText!, style: const TextStyle(color: _errorRed, fontSize: 12)),
                     ],
 
                     const SizedBox(height: 28),
@@ -249,12 +263,15 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         children: [
                           _GoogleLogo(),
                           SizedBox(width: 10),
-                          Text(
-                            'Continue with Google',
-                            style: TextStyle(
-                              color: slate900,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
+                          Flexible(
+                            child: Text(
+                              'Continue with Google',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: slate900,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                         ],
@@ -272,12 +289,15 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         children: [
                           _AppleLogo(),
                           SizedBox(width: 10),
-                          Text(
-                            'Sign up with Apple',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
+                          Flexible(
+                            child: Text(
+                              'Sign up with Apple',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                         ],
@@ -285,11 +305,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     ),
 
                     const SizedBox(height: 16),
-                    const Text(
-                      'Signed-in data syncs to Firestore and stays available offline.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 11, color: slate400),
-                    ),
+                    //const Text(
+                    //  'Signed-in data syncs to Firestore and stays available offline.',
+                    //  textAlign: TextAlign.center,
+                    //  style: TextStyle(fontSize: 11, color: slate400),
+                    //),
                   ],
                 ),
               ),
@@ -430,12 +450,12 @@ class _AppleLogo extends StatelessWidget {
     return SizedBox(
       width: 18,
       height: 18,
-      child: CustomPaint(painter: _GoogleLogoPainter()),
+      child: CustomPaint(painter: _AppleLogoPainter()),
     );
   }
 }
 
-class _GoogleLogoPainter extends CustomPainter {
+class _AppleLogoPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
@@ -466,10 +486,8 @@ class _GoogleLogoPainter extends CustomPainter {
     body.cubicTo(w * 0.34, h * 0.52, w * 0.26, h * 0.46, w * 0.18, h * 0.46);
     body.close();
 
-    arc(start, 0.24, const Color(0xFF4285F4));
-    arc(start + 0.24, 0.26, const Color(0xFF34A853));
-    arc(start + 0.5, 0.24, const Color(0xFFFBBC05));
-    arc(start + 0.74, 0.26, const Color(0xFFEA4335));
+    canvas.drawPath(path, paint);
+    canvas.drawPath(body, paint);
   }
 
   @override
