@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../widgets/shared_widgets.dart';
@@ -181,7 +182,7 @@ class RecordsScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
                 // OCR Lab Import
                 const Text(
-                  'Import Lab Results (OCR)',
+                  'Import Lab Results',
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
                     color: slate900,
@@ -304,6 +305,8 @@ class RecordsScreen extends ConsumerWidget {
                             children: [
                               Text(
                                 d.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
@@ -312,6 +315,8 @@ class RecordsScreen extends ConsumerWidget {
                               ),
                               Text(
                                 d.source,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   fontSize: 11,
                                   color: slate400,
@@ -329,9 +334,33 @@ class RecordsScreen extends ConsumerWidget {
                           ),
                         ),
                         GestureDetector(
-                          onTap: () => toast(
-                            'Downloading "${d.name}" needs a backend connection',
-                          ),
+                          onTap: () async {
+                            final url = d.downloadUrl?.trim();
+                            if (url != null && url.isNotEmpty) {
+                              final uri = Uri.tryParse(url);
+                              final ok = uri != null &&
+                                  (uri.isScheme('http') ||
+                                      uri.isScheme('https')) &&
+                                  await launchUrl(
+                                    uri,
+                                    mode: LaunchMode.externalApplication,
+                                  );
+                              if (!ok) {
+                                ref.read(toastProvider.notifier).show(
+                                      'Could not open "${d.name}"',
+                                    );
+                              }
+                              return;
+                            }
+                            // Binary upload / Storage write path still open.
+                            ref.read(toastProvider.notifier).showUnfinished(
+                                  'Document download',
+                                  detail:
+                                      'no downloadUrl for doc id=${d.id}; needs Firebase Storage upload path',
+                                  userMessage:
+                                      'No download link yet for "${d.name}"',
+                                );
+                          },
                           child: Container(
                             width: 36,
                             height: 36,
@@ -577,7 +606,7 @@ class _OcrImportCard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Scan lab document',
+                      'Add lab result text',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -585,7 +614,7 @@ class _OcrImportCard extends ConsumerWidget {
                       ),
                     ),
                     Text(
-                      'Extract values automatically via OCR',
+                      'Paste values from your lab portal, scanned report, or OCR service',
                       style: TextStyle(fontSize: 11, color: slate400),
                     ),
                   ],
@@ -612,7 +641,7 @@ class _OcrImportCard extends ConsumerWidget {
                           ),
                         )
                       : const Text(
-                          'Scan',
+                          'Paste',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 12,
@@ -663,9 +692,9 @@ class _OcrImportCard extends ConsumerWidget {
                                   .toString(),
                               icon: Icons.science,
                               name:
-                                  'OCR Lab Import ${DateTime.now().day}/${DateTime.now().month}',
+                                  'Lab Import ${DateTime.now().day}/${DateTime.now().month}',
                               source:
-                                  'Scanned · ${DateTime.now().day} ${_monthName(DateTime.now().month)} ${DateTime.now().year}',
+                                  'Imported · ${DateTime.now().day} ${_monthName(DateTime.now().month)} ${DateTime.now().year}',
                               ocrText: ocrResult,
                             ),
                           );
@@ -702,9 +731,83 @@ class _OcrImportCard extends ConsumerWidget {
   }
 
   Future<void> _runOcr(BuildContext context, WidgetRef ref) async {
-    ref.read(_ocrLoadingProvider.notifier).set(true);
-    await ref.read(ocrProvider.notifier).processImage('simulated_path');
-    ref.read(_ocrLoadingProvider.notifier).set(false);
+    final controller = TextEditingController();
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          20,
+          20,
+          MediaQuery.of(ctx).viewInsets.bottom + 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Paste lab result text',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: slate900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Use this until device OCR or a document-processing backend is connected.',
+              style: TextStyle(fontSize: 12, color: slate400, height: 1.5),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              maxLines: 8,
+              decoration: InputDecoration(
+                hintText: 'HbA1c: 6.8%\nFasting Glucose: 119 mg/dL\nDate: 29 May 2026',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: slate200),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: slate200),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: () {
+                final value = controller.text.trim();
+                if (value.isEmpty) return;
+                ref.read(ocrProvider.notifier).setResult(value);
+                Navigator.pop(ctx);
+              },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: teal600,
+                  borderRadius: BorderRadius.circular(50),
+                ),
+                child: const Text(
+                  'Use this text',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    controller.dispose();
   }
 
   String _monthName(int m) => const [

@@ -194,6 +194,8 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                                         const SizedBox(height: 4),
                                         Text(
                                           e.title,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
                                           style: const TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w800,
@@ -202,6 +204,8 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                                         ),
                                         Text(
                                           e.person,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                           style: const TextStyle(
                                             fontSize: 11,
                                             color: slate400,

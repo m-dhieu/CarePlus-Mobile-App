@@ -55,6 +55,8 @@ class HomeScreen extends ConsumerWidget {
                     ),
                     Text(
                       'Hi, $firstName',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
@@ -64,18 +66,21 @@ class HomeScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 6)],
-                ),
-                child: const Icon(
-                  Icons.notifications,
-                  size: 16,
-                  color: slate700,
+              GestureDetector(
+                onTap: () => navigate('reminders'),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 6)],
+                  ),
+                  child: const Icon(
+                    Icons.notifications,
+                    size: 16,
+                    color: slate700,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -174,6 +179,8 @@ class HomeScreen extends ConsumerWidget {
                   conditions.isEmpty
                       ? 'Complete your profile to personalize this view'
                       : conditions,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 13, color: Color(0xFFCCFBF1)),
                 ),
                 const SizedBox(height: 12),
@@ -186,12 +193,17 @@ class HomeScreen extends ConsumerWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      reminders.isEmpty
-                          ? 'No reminders set yet'
-                          : '${reminders.where((r) => r.enabled).length} active reminders',
-                      style: const TextStyle(fontSize: 11, color: teal100),
+                    Expanded(
+                      child: Text(
+                        reminders.isEmpty
+                            ? 'No reminders set yet'
+                            : '${reminders.where((r) => r.enabled).length} active reminders',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 11, color: teal100),
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () => navigate('metrics'),
                       child: Container(
@@ -225,7 +237,8 @@ class HomeScreen extends ConsumerWidget {
             physics: const NeverScrollableScrollPhysics(),
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
-            childAspectRatio: 1.4,
+            // Taller cells avoid RenderFlex bottom overflow on narrow widths.
+            childAspectRatio: 1.15,
             children: [
               _MetricCard(
                 icon: Icons.water_drop,
@@ -340,7 +353,7 @@ class HomeScreen extends ConsumerWidget {
             )
           else
             SizedBox(
-              height: 130,
+              height: 140,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: caregivers.length,
@@ -362,6 +375,8 @@ class HomeScreen extends ConsumerWidget {
                         const SizedBox(height: 8),
                         Text(
                           c.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
@@ -370,10 +385,14 @@ class HomeScreen extends ConsumerWidget {
                         ),
                         Text(
                           c.relation,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontSize: 11, color: slate400),
                         ),
                         Text(
                           c.role.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontSize: 10, color: slate300),
                         ),
                       ],
@@ -542,27 +561,38 @@ class _MetricCard extends StatelessWidget {
                 ),
                 child: Icon(icon, size: 14, color: teal700),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: positive ? teal50 : slate100,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  delta,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: positive ? teal600 : slate500,
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: positive ? teal50 : slate100,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    delta,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: positive ? teal600 : slate500,
+                    ),
                   ),
                 ),
               ),
             ],
           ),
           const Spacer(),
-          Text(label, style: const TextStyle(fontSize: 11, color: slate400)),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11, color: slate400),
+          ),
           Text(
             value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w800,
@@ -612,6 +642,8 @@ class _MedItem extends StatelessWidget {
               children: [
                 Text(
                   med['name']!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -620,6 +652,8 @@ class _MedItem extends StatelessWidget {
                 ),
                 Text(
                   med['detail']!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 11, color: slate400),
                 ),
               ],
@@ -738,6 +772,8 @@ class _VisitCard extends ConsumerWidget {
                   children: [
                     Text(
                       e.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -746,6 +782,8 @@ class _VisitCard extends ConsumerWidget {
                     ),
                     Text(
                       '${e.person} · ${e.facility}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 11, color: slate400),
                     ),
                   ],

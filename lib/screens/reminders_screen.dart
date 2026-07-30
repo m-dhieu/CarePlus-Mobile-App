@@ -262,6 +262,8 @@ class _ReminderCard extends ConsumerWidget {
               children: [
                 Text(
                   reminder.medicationName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
@@ -270,6 +272,8 @@ class _ReminderCard extends ConsumerWidget {
                 ),
                 Text(
                   reminder.time.format(context),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -278,6 +282,8 @@ class _ReminderCard extends ConsumerWidget {
                 ),
                 Text(
                   reminder.daysLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 11, color: slate400),
                 ),
               ],

@@ -213,6 +213,8 @@ class _CaregiverCard extends ConsumerWidget {
                   children: [
                     Text(
                       caregiver.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
@@ -221,26 +223,33 @@ class _CaregiverCard extends ConsumerWidget {
                     ),
                     Text(
                       '${caregiver.relation} · ${caregiver.phone}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 11, color: slate400),
                     ),
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: roleColors[caregiver.role]!.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  caregiver.roleLabel,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: roleColors[caregiver.role],
+              const SizedBox(width: 8),
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: roleColors[caregiver.role]!.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    caregiver.roleLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: roleColors[caregiver.role],
+                    ),
                   ),
                 ),
               ),
@@ -253,6 +262,7 @@ class _CaregiverCard extends ConsumerWidget {
                 child: DropdownButtonFormField<CaregiverRole>(
                   initialValue: caregiver.role,
                   isDense: true,
+                  isExpanded: true,
                   decoration: InputDecoration(
                     labelText: 'Access',
                     labelStyle: const TextStyle(fontSize: 11, color: slate400),
@@ -275,6 +285,7 @@ class _CaregiverCard extends ConsumerWidget {
                       value: r,
                       child: Text(
                         labels[r]!,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontSize: 12),
                       ),
                     );
@@ -284,21 +295,17 @@ class _CaregiverCard extends ConsumerWidget {
                       .updateRole(caregiver.id, v!),
                 ),
               ),
-              const SizedBox(width: 12),
-              Row(
-                children: [
-                  const Text(
-                    'Notify',
-                    style: TextStyle(fontSize: 12, color: slate500),
-                  ),
-                  Switch(
-                    value: caregiver.notificationsEnabled,
-                    activeThumbColor: teal600,
-                    onChanged: (_) => ref
-                        .read(caregiversProvider.notifier)
-                        .toggleNotifications(caregiver.id),
-                  ),
-                ],
+              const SizedBox(width: 8),
+              const Text(
+                'Notify',
+                style: TextStyle(fontSize: 12, color: slate500),
+              ),
+              Switch(
+                value: caregiver.notificationsEnabled,
+                activeThumbColor: teal600,
+                onChanged: (_) => ref
+                    .read(caregiversProvider.notifier)
+                    .toggleNotifications(caregiver.id),
               ),
               GestureDetector(
                 onTap: () =>

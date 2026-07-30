@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/providers.dart';
 import '../widgets/shared_widgets.dart';
 
@@ -141,9 +142,34 @@ class EmergencyAccessScreen extends ConsumerWidget {
                   name: user.emergencyContact.name,
                   subtitle: '${user.emergencyContact.relation} · ${user.emergencyContact.phone}',
                   icon: Icons.person,
+                  onCall: () async {
+                    final phone = user.emergencyContact.phone;
+                    final cleaned =
+                        phone.trim().replaceAll(RegExp(r'[^\d+]'), '');
+                    final ok = cleaned.isNotEmpty &&
+                        cleaned != '—' &&
+                        await launchUrl(Uri(scheme: 'tel', path: cleaned));
+                    if (!ok) {
+                      ref.read(toastProvider.notifier).show(
+                            'No dialer available for "$phone"',
+                          );
+                    }
+                  },
                 ),
                 const SizedBox(height: 8),
-                _ContactTile(name: 'Emergency Services', subtitle: 'Call 112', icon: Icons.local_hospital),
+                _ContactTile(
+                  name: 'Emergency Services',
+                  subtitle: 'Call 112',
+                  icon: Icons.local_hospital,
+                  onCall: () async {
+                    final ok = await launchUrl(Uri(scheme: 'tel', path: '112'));
+                    if (!ok) {
+                      ref.read(toastProvider.notifier).show(
+                            'No dialer available for 112',
+                          );
+                    }
+                  },
+                ),
               ],
             ),
           ),
@@ -206,7 +232,13 @@ class _ContactTile extends StatelessWidget {
   final String name;
   final String subtitle;
   final IconData icon;
-  const _ContactTile({required this.name, required this.subtitle, required this.icon});
+  final VoidCallback? onCall;
+  const _ContactTile({
+    required this.name,
+    required this.subtitle,
+    required this.icon,
+    this.onCall,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -225,11 +257,33 @@ class _ContactTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: slate900)),
-                Text(subtitle, style: const TextStyle(fontSize: 11, color: slate400)),
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: slate900),
+                ),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 11, color: slate400),
+                ),
               ],
             ),
           ),
+          if (onCall != null)
+            GestureDetector(
+              onTap: onCall,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(color: teal600, borderRadius: BorderRadius.circular(50)),
+                child: const Text(
+                  'Call',
+                  style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
         ],
       ),
     );
