@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../features/auth/auth_providers.dart';
 import '../features/auth/validators.dart';
 import '../providers/providers.dart';
+import '../services/auth_errors.dart';
 import '../widgets/shared_widgets.dart';
 
 const _errorRed = Color(0xFFEF4444);
@@ -19,111 +20,58 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   bool _isLogin = true;
   bool _showPw = false;
   bool _showConfirmPw = false;
-  bool _submitting = false;
-  String? _errorText;
-
-  final _fullNameController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmController = TextEditingController();
+  bool _busy = false;
+  final _emailCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  final _confirmCtrl = TextEditingController();
 
   @override
   void dispose() {
-    _fullNameController.dispose();
-    _phoneController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    _confirmController.dispose();
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
+    _confirmCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
-
-    final emailError = validateEmail(email);
-    final passwordError = validatePassword(password);
-    if (emailError != null) {
-      setState(() => _errorText = emailError);
+    final email = _emailCtrl.text.trim();
+    final password = _passwordCtrl.text;
+    if (email.isEmpty || password.isEmpty) {
+      ref.read(toastProvider.notifier).show('Email and password are required');
       return;
     }
-    if (passwordError != null) {
-      setState(() => _errorText = passwordError);
+    if (!_isLogin && password != _confirmCtrl.text) {
+      ref.read(toastProvider.notifier).show('Passwords do not match');
       return;
     }
 
-    if (!_isLogin) {
-      final nameError = validateFullName(_fullNameController.text);
-      if (nameError != null) {
-        setState(() => _errorText = nameError);
-        return;
-      }
-      if (password != _confirmController.text) {
-        setState(() => _errorText = 'Passwords do not match.');
-        return;
-      }
-    }
-
-    setState(() {
-      _submitting = true;
-      _errorText = null;
-    });
-    final repo = ref.read(authRepositoryProvider);
+    setState(() => _busy = true);
     try {
       if (_isLogin) {
-        await repo.loginWithEmailPassword(email: email, password: password);
+        await ref.read(authProvider.notifier).login(email, password);
       } else {
-        await repo.registerWithEmailPassword(
-          email: email,
-          password: password,
-          fullName: _fullNameController.text.trim(),
-          phone: _phoneController.text.trim(),
-        );
+        await ref.read(authProvider.notifier).signUp(email, password);
+        ref
+            .read(toastProvider.notifier)
+            .show('Account created — you are signed in');
       }
-    } on FirebaseAuthException catch (e) {
-      setState(() => _errorText = repo.mapAuthError(e));
-    } finally {
-      if (mounted) setState(() => _submitting = false);
-    }
-  }
-
-  Future<void> _forgotPassword() async {
-    final email = _emailController.text.trim();
-    final emailError = validateEmail(email);
-    if (emailError != null) {
-      setState(() => _errorText = 'Enter your email above first.');
-      return;
-    }
-    setState(() {
-      _submitting = true;
-      _errorText = null;
-    });
-    final repo = ref.read(authRepositoryProvider);
-    try {
-      await repo.resetPasswordEmail(email);
-      ref.read(toastProvider.notifier).show('Password reset email sent');
-    } on FirebaseAuthException catch (e) {
-      setState(() => _errorText = repo.mapAuthError(e));
-    } finally {
-      if (mounted) setState(() => _submitting = false);
-    }
-  }
-
-  Future<void> _googleSignIn() async {
-    setState(() {
-      _submitting = true;
-      _errorText = null;
-    });
-    final repo = ref.read(authRepositoryProvider);
-    try {
-      await repo.signInWithGoogle();
-    } on FirebaseAuthException catch (e) {
-      setState(() => _errorText = repo.mapAuthError(e));
     } catch (e) {
-      setState(() => _errorText = 'Google sign-in is not available here.');
+      ref.read(toastProvider.notifier).show(AuthErrorMapper.message(e));
     } finally {
-      if (mounted) setState(() => _submitting = false);
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _social(Future<void> Function() action) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await action();
+    } catch (e) {
+      if (e is AuthCancelledException) return;
+      ref.read(toastProvider.notifier).show(AuthErrorMapper.message(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -137,26 +85,47 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('Care', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: teal700)),
+              const Text(
+                'Care',
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w900,
+                  color: teal700,
+                ),
+              ),
               const SizedBox(width: 2),
               const Icon(Icons.add, size: 26, color: teal500),
             ],
           ),
           const SizedBox(height: 32),
           Container(
-            decoration: BoxDecoration(color: Colors.white60, borderRadius: BorderRadius.circular(50)),
+            decoration: BoxDecoration(
+              color: Colors.white60,
+              borderRadius: BorderRadius.circular(50),
+            ),
             padding: const EdgeInsets.all(4),
             child: Row(
               children: [
-                _tabBtn('Login', _isLogin, () => setState(() { _isLogin = true; _errorText = null; })),
-                _tabBtn('Sign up', !_isLogin, () => setState(() { _isLogin = false; _errorText = null; })),
+                _tabBtn(
+                  'Login',
+                  _isLogin,
+                  () => setState(() => _isLogin = true),
+                ),
+                _tabBtn(
+                  'Sign up',
+                  !_isLogin,
+                  () => setState(() => _isLogin = false),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 24),
           Expanded(
             child: Container(
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+              ),
               padding: const EdgeInsets.all(24),
               child: SingleChildScrollView(
                 child: Column(
@@ -165,29 +134,47 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     Text(
                       _isLogin ? "You're welcome again" : 'Create your account',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: teal700, fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                        color: teal700,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 24),
 
-                    // ── Sign-up fields ──────────────────────────────────────
                     if (!_isLogin) ...[
-                      _Field(label: 'Full name', placeholder: 'Enter your full name', icon: Icons.person, controller: _fullNameController),
+                      const _Field(
+                        label: 'Full name',
+                        placeholder: 'Enter your full name',
+                        icon: Icons.person,
+                      ),
                       const SizedBox(height: 16),
-                      _Field(label: 'Phone number', placeholder: '+250 788 000 000', icon: Icons.phone, keyboardType: TextInputType.phone, controller: _phoneController),
+                      const _Field(
+                        label: 'Phone number',
+                        placeholder: '+250 788 000 000',
+                        icon: Icons.phone,
+                        keyboardType: TextInputType.phone,
+                      ),
                       const SizedBox(height: 16),
                     ],
 
-                    // ── Shared fields ───────────────────────────────────────
-                    _Field(label: 'Email', placeholder: 'Enter your email', icon: Icons.mail, keyboardType: TextInputType.emailAddress, controller: _emailController),
+                    _Field(
+                      label: 'Email',
+                      placeholder: 'Enter your email',
+                      icon: Icons.mail,
+                      keyboardType: TextInputType.emailAddress,
+                      controller: _emailCtrl,
+                    ),
                     const SizedBox(height: 16),
                     _Field(
                       label: 'Password',
                       placeholder: 'Enter your password',
                       icon: Icons.lock,
                       obscure: !_showPw,
-                      suffixIcon: _showPw ? Icons.visibility_off : Icons.visibility,
+                      suffixIcon: _showPw
+                          ? Icons.visibility_off
+                          : Icons.visibility,
                       onSuffixTap: () => setState(() => _showPw = !_showPw),
-                      controller: _passwordController,
+                      controller: _passwordCtrl,
                     ),
 
                     if (!_isLogin) ...[
@@ -197,20 +184,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         placeholder: 'Re-enter your password',
                         icon: Icons.lock,
                         obscure: !_showConfirmPw,
-                        suffixIcon: _showConfirmPw ? Icons.visibility_off : Icons.visibility,
-                        onSuffixTap: () => setState(() => _showConfirmPw = !_showConfirmPw),
-                        controller: _confirmController,
-                      ),
-                    ],
-
-                    if (_isLogin) ...[
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: GestureDetector(
-                          onTap: _submitting ? null : _forgotPassword,
-                          child: Text('Forgot password?', style: TextStyle(fontSize: 12, color: slate500)),
-                        ),
+                        suffixIcon: _showConfirmPw
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        onSuffixTap: () =>
+                            setState(() => _showConfirmPw = !_showConfirmPw),
+                        controller: _confirmCtrl,
                       ),
                     ],
 
@@ -221,9 +200,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
                     const SizedBox(height: 28),
 
-                    // ── Primary action button ───────────────────────────────
                     ElevatedButton(
-                      onPressed: _submitting ? null : _submit,
+                      onPressed: _busy ? null : _submit,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: teal600,
                         foregroundColor: Colors.white,
@@ -231,57 +209,86 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         shape: const StadiumBorder(),
                         elevation: 2,
                       ),
-                      child: _submitting
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                            )
-                          : Text(
-                              _isLogin ? 'Login' : 'Sign up',
-                              style: const TextStyle(fontWeight: FontWeight.w800),
-                            ),
+                      child: Text(
+                        _busy
+                            ? 'Please wait…'
+                            : (_isLogin ? 'Login' : 'Sign up'),
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
                     ),
 
-                    // ── Divider + Google ────────────────────────────────────
                     const SizedBox(height: 20),
                     Row(
                       children: [
                         const Expanded(child: Divider(color: slate200)),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(_isLogin ? 'or continue with' : 'or sign up with', style: TextStyle(fontSize: 11, color: slate400)),
+                          child: Text(
+                            _isLogin ? 'or continue with' : 'or sign up with',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: slate400,
+                            ),
+                          ),
                         ),
                         const Expanded(child: Divider(color: slate200)),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    GestureDetector(
-                      onTap: _submitting ? null : _googleSignIn,
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: slate200),
-                          borderRadius: BorderRadius.circular(50),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _GoogleLogo(),
-                            SizedBox(width: 10),
-                            Text(
-                              'Continue with Google',
-                              style: TextStyle(
-                                color: slate700,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
+
+                    _SocialButton(
+                      enabled: !_busy,
+                      background: Colors.white,
+                      borderColor: slate200,
+                      onTap: () => _social(
+                        () =>
+                            ref.read(authProvider.notifier).signInWithGoogle(),
                       ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _GoogleLogo(),
+                          SizedBox(width: 10),
+                          Text(
+                            'Continue with Google',
+                            style: TextStyle(
+                              color: slate900,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _SocialButton(
+                      enabled: !_busy,
+                      background: const Color(0xFF000000),
+                      onTap: () => _social(
+                        () => ref.read(authProvider.notifier).signInWithApple(),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _AppleLogo(),
+                          SizedBox(width: 10),
+                          Text(
+                            'Sign up with Apple',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Signed-in data syncs to Firestore and stays available offline.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 11, color: slate400),
                     ),
                   ],
                 ),
@@ -303,7 +310,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           decoration: BoxDecoration(
             color: active ? teal600 : Colors.transparent,
             borderRadius: BorderRadius.circular(50),
-            boxShadow: active ? [const BoxShadow(color: Colors.black12, blurRadius: 4)] : [],
+            boxShadow: active
+                ? [const BoxShadow(color: Colors.black12, blurRadius: 4)]
+                : [],
           ),
           child: Text(
             label,
@@ -320,9 +329,101 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 }
 
-// Google "G" mark drawn with simple colored quadrants — no asset needed
+class _SocialButton extends StatelessWidget {
+  final bool enabled;
+  final Color background;
+  final Color? borderColor;
+  final VoidCallback onTap;
+  final Widget child;
+
+  const _SocialButton({
+    required this.enabled,
+    required this.background,
+    this.borderColor,
+    required this.onTap,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: enabled ? 1 : 0.6,
+      child: GestureDetector(
+        onTap: enabled ? onTap : null,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: background,
+            borderRadius: BorderRadius.circular(50),
+            border: borderColor == null
+                ? null
+                : Border.all(color: borderColor!),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
 class _GoogleLogo extends StatelessWidget {
   const _GoogleLogo();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      width: 18,
+      height: 18,
+      child: CustomPaint(painter: _GoogleLogoPainter()),
+    );
+  }
+}
+
+class _GoogleLogoPainter extends CustomPainter {
+  const _GoogleLogoPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stroke = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * 0.18
+      ..strokeCap = StrokeCap.butt;
+
+    final rect = Rect.fromLTWH(
+      size.width * 0.12,
+      size.height * 0.12,
+      size.width * 0.76,
+      size.height * 0.76,
+    );
+
+    stroke.color = const Color(0xFF4285F4);
+    canvas.drawArc(rect, -0.4, 1.6, false, stroke);
+    stroke.color = const Color(0xFF34A853);
+    canvas.drawArc(rect, 1.2, 1.1, false, stroke);
+    stroke.color = const Color(0xFFFBBC05);
+    canvas.drawArc(rect, 2.3, 0.8, false, stroke);
+    stroke.color = const Color(0xFFEA4335);
+    canvas.drawArc(rect, 3.1, 1.0, false, stroke);
+
+    final bar = Paint()..color = const Color(0xFF4285F4);
+    canvas.drawRect(
+      Rect.fromLTWH(
+        size.width * 0.48,
+        size.height * 0.42,
+        size.width * 0.40,
+        size.height * 0.16,
+      ),
+      bar,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_) => false;
+}
+
+class _AppleLogo extends StatelessWidget {
+  const _AppleLogo();
 
   @override
   Widget build(BuildContext context) {
@@ -337,18 +438,33 @@ class _GoogleLogo extends StatelessWidget {
 class _GoogleLogoPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-    final rect = Rect.fromCircle(center: center, radius: radius);
-    const start = -0.4;
+    final paint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    final w = size.width;
+    final h = size.height;
 
-    void arc(double startTurn, double sweepTurn, Color color) {
-      final paint = Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * 0.28;
-      canvas.drawArc(rect.deflate(paint.strokeWidth / 2), startTurn * 6.28319, sweepTurn * 6.28319, false, paint);
-    }
+    final path = Path();
+    path.moveTo(w * 0.72, h * 0.0);
+    path.cubicTo(w * 0.72, h * 0.0, w * 0.44, h * 0.02, w * 0.44, h * 0.28);
+    path.cubicTo(w * 0.44, h * 0.38, w * 0.50, h * 0.44, w * 0.56, h * 0.44);
+    path.cubicTo(w * 0.62, h * 0.44, w * 0.68, h * 0.40, w * 0.72, h * 0.36);
+    path.cubicTo(w * 0.76, h * 0.40, w * 0.82, h * 0.44, w * 0.88, h * 0.44);
+    path.cubicTo(w * 0.94, h * 0.44, w * 1.0, h * 0.38, w * 1.0, h * 0.28);
+    path.cubicTo(w * 1.0, h * 0.02, w * 0.72, h * 0.0, w * 0.72, h * 0.0);
+    path.close();
+
+    final body = Path();
+    body.moveTo(w * 0.18, h * 0.46);
+    body.cubicTo(w * 0.06, h * 0.46, w * 0.0, h * 0.56, w * 0.0, h * 0.68);
+    body.cubicTo(w * 0.0, h * 0.86, w * 0.12, h * 1.0, w * 0.28, h * 1.0);
+    body.cubicTo(w * 0.36, h * 1.0, w * 0.42, h * 0.96, w * 0.50, h * 0.96);
+    body.cubicTo(w * 0.58, h * 0.96, w * 0.64, h * 1.0, w * 0.72, h * 1.0);
+    body.cubicTo(w * 0.88, h * 1.0, w * 1.0, h * 0.86, w * 1.0, h * 0.68);
+    body.cubicTo(w * 1.0, h * 0.56, w * 0.94, h * 0.46, w * 0.82, h * 0.46);
+    body.cubicTo(w * 0.74, h * 0.46, w * 0.66, h * 0.52, w * 0.50, h * 0.52);
+    body.cubicTo(w * 0.34, h * 0.52, w * 0.26, h * 0.46, w * 0.18, h * 0.46);
+    body.close();
 
     arc(start, 0.24, const Color(0xFF4285F4));
     arc(start + 0.24, 0.26, const Color(0xFF34A853));
@@ -386,7 +502,14 @@ class _Field extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: teal700)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: teal700,
+          ),
+        ),
         const SizedBox(height: 4),
         Container(
           decoration: BoxDecoration(

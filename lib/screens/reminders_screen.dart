@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
-import '../providers/providers.dart' hide remindersProvider; // added
-import '../providers/reminder_provider.dart'; // added
-import '../providers/medication_provider.dart'; // added
+import '../providers/providers.dart';
 import '../widgets/shared_widgets.dart';
 
 class RemindersScreen extends ConsumerWidget {
@@ -11,10 +9,7 @@ class RemindersScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // final reminders = ref.watch(remindersProvider);
-    // now remindersProvider is AsyncNotifierProvider,
-    // so it exposes loading/error/data states
-    final remindersState = ref.watch(remindersProvider); // added
+    final reminders = ref.watch(remindersProvider);
     void back() => ref.read(screenProvider.notifier).go('profile');
 
     return Column(
@@ -26,111 +21,143 @@ class RemindersScreen extends ConsumerWidget {
           onRight: () => _showAddDialog(context, ref),
         ),
         Expanded(
-          child: remindersState.when( // added
-            loading: () => const Center(
-              child: CircularProgressIndicator(),
-            ),
-            error: (error, stack) => const Center(
-              child: Text(
-                'Failed to load reminders',
-              ),
-            ),
-            data: (reminders) { // added
-              if (reminders.isEmpty) {
-                return const Center(
+          child: reminders.isEmpty
+              ? const Center(
                   child: Text(
                     'No reminders yet',
-                    style: TextStyle(
-                      color: slate400,
-                    ),
+                    style: TextStyle(color: slate400),
                   ),
-                );
-              }
-              return ListView.separated(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-                itemCount: reminders.length,
-                separatorBuilder: (_, __) =>
-                  const SizedBox(height: 12),
-                itemBuilder: (_, i) =>
-                  _ReminderCard(reminder: reminders[i],)
-              );
-            },
-          ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+                  itemCount: reminders.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
+                  itemBuilder: (_, i) => _ReminderCard(reminder: reminders[i]),
+                ),
         ),
       ],
     );
   }
 
-  //         child: reminders.isEmpty
-  //             ? const Center(child: Text('No reminders yet', style: TextStyle(color: slate400)))
-  //             : ListView.separated(
-  //                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-  //                 itemCount: reminders.length,
-  //                 separatorBuilder: (_, __) => const SizedBox(height: 12),
-  //                 itemBuilder: (_, i) => _ReminderCard(reminder: reminders[i]),
-  //               ),
-  //       ),
-  //     ],
-  //   );
-  // }
-
   void _showAddDialog(BuildContext context, WidgetRef ref) {
-    // final meds = ref.read(medicationsProvider);
-    final medsState = ref.read(medicationsProvider); // added
-    if (!medsState.hasValue || medsState.value!.isEmpty) {
+    final meds = ref.read(medicationsProvider);
+    if (meds.isEmpty) {
+      ref.read(toastProvider.notifier).show(
+            'Add a medication first, then create a reminder',
+          );
       return;
-    } // added
-    final meds = medsState.value ?? []; // added
-    String selected = meds.first.name; 
+    }
+    String selected = meds.first.name;
     TimeOfDay time = const TimeOfDay(hour: 8, minute: 0);
     final days = List.filled(7, true);
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => Padding(
-          padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
+          padding: EdgeInsets.fromLTRB(
+            24,
+            24,
+            24,
+            MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('New Reminder', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: slate900)),
+              const Text(
+                'New Reminder',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: slate900,
+                ),
+              ),
               const SizedBox(height: 20),
-              const Text('Medication', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: teal700)),
+              const Text(
+                'Medication',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: teal700,
+                ),
+              ),
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
                 value: selected,
                 decoration: InputDecoration(
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: slate200)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: slate200),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                 ),
-                items: meds.map((m) => DropdownMenuItem(value: m.name, child: Text(m.name))).toList(),
+                items: meds
+                    .map(
+                      (m) =>
+                          DropdownMenuItem(value: m.name, child: Text(m.name)),
+                    )
+                    .toList(),
                 onChanged: (v) => setS(() => selected = v!),
               ),
               const SizedBox(height: 16),
-              const Text('Time', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: teal700)),
+              const Text(
+                'Time',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: teal700,
+                ),
+              ),
               const SizedBox(height: 6),
               GestureDetector(
                 onTap: () async {
-                  final picked = await showTimePicker(context: ctx, initialTime: time);
+                  final picked = await showTimePicker(
+                    context: ctx,
+                    initialTime: time,
+                  );
                   if (picked != null) setS(() => time = picked);
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  decoration: BoxDecoration(border: Border.all(color: slate200), borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: slate200),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Row(
                     children: [
                       const Icon(Icons.access_time, size: 16, color: teal600),
                       const SizedBox(width: 8),
-                      Text(time.format(ctx), style: const TextStyle(fontWeight: FontWeight.w700, color: slate900)),
+                      Text(
+                        time.format(ctx),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: slate900,
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 16),
-              const Text('Days', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: teal700)),
+              const Text(
+                'Days',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: teal700,
+                ),
+              ),
               const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -140,15 +167,21 @@ class RemindersScreen extends ConsumerWidget {
                     onTap: () => setS(() => days[i] = !days[i]),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 150),
-                      width: 36, height: 36,
+                      width: 36,
+                      height: 36,
                       decoration: BoxDecoration(
                         color: days[i] ? teal600 : teal50,
                         shape: BoxShape.circle,
                       ),
                       child: Center(
-                        child: Text(labels[i],
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
-                                color: days[i] ? Colors.white : teal700)),
+                        child: Text(
+                          labels[i],
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: days[i] ? Colors.white : teal700,
+                          ),
+                        ),
                       ),
                     ),
                   );
@@ -157,21 +190,33 @@ class RemindersScreen extends ConsumerWidget {
               const SizedBox(height: 24),
               GestureDetector(
                 onTap: () {
-                  // ref.read(remindersProvider.notifier).add(Reminder(
-                  ref.read(remindersProvider.notifier).addReminder(Reminder( // added
-                    id: DateTime.now().millisecondsSinceEpoch.toString(),
-                    medicationName: selected,
-                    time: time,
-                    days: List.from(days),
-                  ));
+                  ref
+                      .read(remindersProvider.notifier)
+                      .add(
+                        Reminder(
+                          id: DateTime.now().millisecondsSinceEpoch.toString(),
+                          medicationName: selected,
+                          time: time,
+                          days: List.from(days),
+                        ),
+                      );
                   Navigator.pop(ctx);
                 },
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(color: teal600, borderRadius: BorderRadius.circular(50)),
-                  child: const Text('Save reminder', textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                  decoration: BoxDecoration(
+                    color: teal600,
+                    borderRadius: BorderRadius.circular(50),
+                  ),
+                  child: const Text(
+                    'Save reminder',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -198,24 +243,43 @@ class _ReminderCard extends ConsumerWidget {
       child: Row(
         children: [
           Container(
-            width: 48, height: 48,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               color: reminder.enabled ? teal50 : slate100,
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.medication, size: 20, color: reminder.enabled ? teal600 : slate400),
+            child: Icon(
+              Icons.medication,
+              size: 20,
+              color: reminder.enabled ? teal600 : slate400,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(reminder.medicationName,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: slate900)),
-                Text(reminder.time.format(context),
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
-                        color: reminder.enabled ? teal600 : slate400)),
-                Text(reminder.daysLabel, style: const TextStyle(fontSize: 11, color: slate400)),
+                Text(
+                  reminder.medicationName,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: slate900,
+                  ),
+                ),
+                Text(
+                  reminder.time.format(context),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: reminder.enabled ? teal600 : slate400,
+                  ),
+                ),
+                Text(
+                  reminder.daysLabel,
+                  style: const TextStyle(fontSize: 11, color: slate400),
+                ),
               ],
             ),
           ),
@@ -223,13 +287,18 @@ class _ReminderCard extends ConsumerWidget {
             children: [
               Switch(
                 value: reminder.enabled,
-                activeColor: teal600,
-                onChanged: (_) => ref.read(remindersProvider.notifier).toggleReminder(reminder.id),
+                activeThumbColor: teal600,
+                onChanged: (_) =>
+                    ref.read(remindersProvider.notifier).toggle(reminder.id),
               ),
               GestureDetector(
-                // onTap: () => ref.read(remindersProvider.notifier).remove(reminder.id),
-                onTap: () => ref.read(remindersProvider.notifier).deleteReminder(reminder.id), // added
-                child: const Icon(Icons.delete_outline, size: 18, color: slate400),
+                onTap: () =>
+                    ref.read(remindersProvider.notifier).remove(reminder.id),
+                child: const Icon(
+                  Icons.delete_outline,
+                  size: 18,
+                  color: slate400,
+                ),
               ),
             ],
           ),

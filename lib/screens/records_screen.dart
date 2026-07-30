@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../data/mock_data.dart';
 import '../models/models.dart';
-import '../providers/providers.dart' hide shareTokensProvider, ocrProvider; // addded
-import '../providers/document_provider.dart'; // added
-import '../providers/share_token_provider.dart'; // added
-import '../providers/ocr_provider.dart'; // added
+import '../providers/providers.dart';
 import '../widgets/shared_widgets.dart';
 
 class RecordsScreen extends ConsumerWidget {
@@ -16,12 +12,24 @@ class RecordsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     void toast(String msg) => ref.read(toastProvider.notifier).show(msg);
     void back() => ref.read(screenProvider.notifier).go('home');
-    // final tokens = ref.watch(shareTokensProvider);
-    final tokensState = ref.watch(shareTokensProvider); // added
-    // final docs = ref.watch(documentsProvider);
-    final documentsState = ref.watch(documentsProvider); // added
-    // final ocrResult = ref.watch(ocrProvider);
-    final ocrState = ref.watch(ocrProvider); // added
+    final tokens = ref.watch(shareTokensProvider);
+    final docs = ref.watch(documentsProvider);
+    final ocrResult = ref.watch(ocrProvider);
+    final journal = ref.watch(journalProvider);
+
+    final hospitals = <String, int>{};
+    for (final e in journal) {
+      final f = e.facility.trim();
+      if (f.isEmpty) continue;
+      hospitals[f] = (hospitals[f] ?? 0) + 1;
+    }
+    final hospitalEntries = hospitals.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final feedback = journal
+        .where((e) => e.type == 'Visit' && e.note.trim().isNotEmpty)
+        .take(5)
+        .toList();
 
     return Column(
       children: [
@@ -47,12 +55,23 @@ class RecordsScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('END-TO-END ENCRYPTED',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: slate400, letterSpacing: 0.5)),
+                      const Text(
+                        'END-TO-END ENCRYPTED',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: slate400,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       const Text(
                         'One complete medical history — across every doctor and hospital that has treated you.',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: slate900),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: slate900,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       GestureDetector(
@@ -60,14 +79,23 @@ class RecordsScreen extends ConsumerWidget {
                         child: Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(color: teal600, borderRadius: BorderRadius.circular(50)),
+                          decoration: BoxDecoration(
+                            color: teal600,
+                            borderRadius: BorderRadius.circular(50),
+                          ),
                           child: const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(Icons.share, size: 14, color: Colors.white),
                               SizedBox(width: 8),
-                              Text('Share with a new doctor',
-                                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+                              Text(
+                                'Share with a new doctor',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -77,255 +105,355 @@ class RecordsScreen extends ConsumerWidget {
                 ),
 
                 // Active share tokens
-                // if (tokens.isNotEmpty) ...[
-                tokensState.when( // added
-                  loading: () => const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: Center(
-                      child: CircularProgressIndicator(),
+                if (tokens.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Active share tokens',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: slate900,
                     ),
                   ),
-                  error: (error, stack) => const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: Center(
-                      child: Text(
-                        'Failed to load share tokens',
-                      ),
-                    ),
-                  ),
-                  data: (tokens) {
-                    if (tokens.isEmpty) {
-                      return const SizedBox.shrink();
-                    } // added
-
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 16),
-                        const Text('Active share tokens', style: TextStyle(fontWeight: FontWeight.w800, color: slate900)),
-                        const SizedBox(height: 8),
-
-                        ...tokens.map((t) => Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: t.isExpired ? slate100 : teal50,
-                            border: Border.all(color: t.isExpired ? slate200 : teal100),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(t.token,
-                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: slate900)),
-                                    Text('${t.doctorName} · ${t.isExpired ? 'Expired' : 'Active'}',
-                                        style: TextStyle(fontSize: 11, color: t.isExpired ? slate400 : teal600)),
-                                  ],
-                                ),
-                              ),
-                              GestureDetector(
-                                onTap: () {
-                                  Clipboard.setData(ClipboardData(text: t.token));
-                                  toast('Token copied');
-                                },
-                                child: const Icon(Icons.copy, size: 16, color: slate400),
-                              ),
-                              const SizedBox(width: 12),
-                              GestureDetector(
-                                // onTap: () => ref.read(shareTokensProvider.notifier).revoke(t.token),
-                                onTap: () => ref
-                                  .read(
-                                    shareTokensProvider.notifier,
-                                  )
-                                  .revokeToken(
-                                    t.token,
-                                  ),
-                                child: const Icon(Icons.close, size: 16, color: slate400),
-                              ),
-                            ],
-                          ),
-                        )),
-                      ],
-                    );
-                  },
-                ),
-
-                const SizedBox(height: 20),
-                // OCR Lab Import
-                const Text('Import Lab Results (OCR)', style: TextStyle(fontWeight: FontWeight.w800, color: slate900)),
-                const SizedBox(height: 8),
-                // _OcrImportCard(ocrResult: ocrResult),
-                ocrState.when( // added
-                  loading: () => const Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24),
-                      child: CircularProgressIndicator(),
-                    ),
-                  ),
-                  error: (error, stack) => const Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24),
-                      child: Text(
-                        'Failed to load OCR data',
-                      ),
-                    ),
-                  ),
-                  data: (ocrResult) => _OcrImportCard(
-                    ocrResult: ocrResult,
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-                const Text('Hospitals', style: TextStyle(fontWeight: FontWeight.w800, color: slate900)),
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 110,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: mockHospitals.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 12),
-                    itemBuilder: (_, i) {
-                      final h = mockHospitals[i];
-                      return Container(
-                        width: 160,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(colors: [teal600, teal500], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                          borderRadius: BorderRadius.circular(16),
+                  const SizedBox(height: 8),
+                  ...tokens.map(
+                    (t) => Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: t.isExpired ? slate100 : teal50,
+                        border: Border.all(
+                          color: t.isExpired ? slate200 : teal100,
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(h['name'] as String,
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
-                            const Spacer(),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('${h['visits']}',
-                                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white)),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    const Text('VISITS', style: TextStyle(fontSize: 10, color: teal100)),
-                                    Text('since ${h['since']}', style: const TextStyle(fontSize: 10, color: teal100)),
-                                  ],
+                                Text(
+                                  t.token,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                    color: slate900,
+                                  ),
+                                ),
+                                Text(
+                                  '${t.doctorName} · ${t.isExpired ? 'Expired' : 'Active'}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: t.isExpired ? slate400 : teal600,
+                                  ),
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Text('Documents', style: TextStyle(fontWeight: FontWeight.w800, color: slate900)),
-                const SizedBox(height: 8),
-                // ...docs.map((d) => Container(
-                documentsState.when( // added
-                  loading: () => const Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24),
-                      child: CircularProgressIndicator(),
-                    ),
-                  ),
-                  error: (error, stack) => const Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24),
-                      child: Text(
-                        'Failed to load documents',
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              Clipboard.setData(ClipboardData(text: t.token));
+                              toast('Token copied');
+                            },
+                            child: const Icon(
+                              Icons.copy,
+                              size: 16,
+                              color: slate400,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          GestureDetector(
+                            onTap: () => ref
+                                .read(shareTokensProvider.notifier)
+                                .revoke(t.token),
+                            child: const Icon(
+                              Icons.close,
+                              size: 16,
+                              color: slate400,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  data: (docs) => Column(
-                    children: docs
-                      .map(
-                        (d) => Container( // added
-                          margin: const EdgeInsets.only(bottom: 10),
-                          padding: const EdgeInsets.all(12),
+                ],
+
+                const SizedBox(height: 20),
+                // OCR Lab Import
+                const Text(
+                  'Import Lab Results (OCR)',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: slate900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _OcrImportCard(ocrResult: ocrResult),
+
+                const SizedBox(height: 20),
+                const Text(
+                  'Hospitals',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: slate900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (hospitalEntries.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      'Facilities appear from your journal entries.',
+                      style: TextStyle(fontSize: 13, color: slate400),
+                    ),
+                  )
+                else
+                  SizedBox(
+                    height: 110,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: hospitalEntries.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 12),
+                      itemBuilder: (_, i) {
+                        final h = hospitalEntries[i];
+                        return Container(
+                          width: 160,
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            border: Border.all(color: teal100),
+                            gradient: const LinearGradient(
+                              colors: [teal600, teal500],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              IconCircle(icon: d.icon),
+                              Text(
+                                h.key,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const Spacer(),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    '${h.value}',
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const Text(
+                                    'ENTRIES',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: teal100,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Documents',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: slate900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (docs.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      'No documents yet — import a lab result above.',
+                      style: TextStyle(fontSize: 13, color: slate400),
+                    ),
+                  ),
+                ...docs.map(
+                  (d) => Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: teal100),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      children: [
+                        IconCircle(icon: d.icon),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                d.name,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: slate900,
+                                ),
+                              ),
+                              Text(
+                                d.source,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: slate400,
+                                ),
+                              ),
+                              if (d.ocrText != null)
+                                const Text(
+                                  'OCR imported',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: teal600,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => toast(
+                            'Downloading "${d.name}" needs a backend connection',
+                          ),
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: slate200),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.download,
+                              size: 14,
+                              color: slate500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Visit notes',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: slate900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (feedback.isEmpty)
+                  const Text(
+                    'Visit notes from your journal will show here.',
+                    style: TextStyle(fontSize: 13, color: slate400),
+                  )
+                else
+                  ...feedback.map(
+                    (f) => Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: teal100),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: const BoxDecoration(
+                                  color: teal100,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    f.person.isNotEmpty
+                                        ? f.person
+                                            .trim()
+                                            .split(RegExp(r'\s+'))
+                                            .where((p) => p.isNotEmpty)
+                                            .take(2)
+                                            .map((p) => p[0].toUpperCase())
+                                            .join()
+                                        : 'DR',
+                                    style: const TextStyle(
+                                      color: teal700,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(d.name,
-                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: slate900)),
-                                    Text(d.source,
-                                        style: const TextStyle(fontSize: 11, color: slate400)),
-                                    if (d.ocrText != null)
-                                      const Text('OCR imported', style: TextStyle(fontSize: 10, color: teal600)),
+                                    Text(
+                                      f.person,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800,
+                                        color: slate900,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${f.facility} · ${f.date}',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: slate400,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
-                              GestureDetector(
-                                onTap: () => toast('Downloading "${d.name}" needs a backend connection'),
-                                child: Container(
-                                  width: 36, height: 36,
-                                  decoration: BoxDecoration(border: Border.all(color: slate200), shape: BoxShape.circle),
-                                  child: const Icon(Icons.download, size: 14, color: slate500),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.only(left: 12),
+                            decoration: const BoxDecoration(
+                              border: Border(
+                                left: BorderSide(
+                                  color: Color(0xFF99F6E4),
+                                  width: 2,
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-                const Text('Doctor feedback', style: TextStyle(fontWeight: FontWeight.w800, color: slate900)),
-                const SizedBox(height: 8),
-                ...mockDoctorFeedback.map((f) => Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(border: Border.all(color: teal100), borderRadius: BorderRadius.circular(16)),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 40, height: 40,
-                            decoration: const BoxDecoration(color: teal100, shape: BoxShape.circle),
-                            child: Center(child: Text(f['initials'] as String,
-                                style: const TextStyle(color: teal700, fontWeight: FontWeight.w700, fontSize: 13))),
-                          ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(f['name'] as String,
-                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: slate900)),
-                              Text(f['role'] as String,
-                                  style: const TextStyle(fontSize: 11, color: slate400)),
-                            ],
+                            ),
+                            child: Text(
+                              f.note,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: slate700,
+                                fontStyle: FontStyle.italic,
+                                height: 1.5,
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.only(left: 12),
-                        decoration: const BoxDecoration(
-                          border: Border(left: BorderSide(color: Color(0xFF99F6E4), width: 2)),
-                        ),
-                        child: Text(f['note'] as String,
-                            style: const TextStyle(fontSize: 12, color: slate700, fontStyle: FontStyle.italic, height: 1.5)),
-                      ),
-                    ],
+                    ),
                   ),
-                )),
               ],
             ),
           ),
@@ -339,51 +467,81 @@ class RecordsScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (ctx) => Padding(
-        padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
+        padding: EdgeInsets.fromLTRB(
+          24,
+          24,
+          24,
+          MediaQuery.of(ctx).viewInsets.bottom + 24,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Share Records', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: slate900)),
+            const Text(
+              'Share Records',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: slate900,
+              ),
+            ),
             const SizedBox(height: 16),
-            const Text('Doctor name', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: teal700)),
+            const Text(
+              'Doctor name',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: teal700,
+              ),
+            ),
             const SizedBox(height: 6),
             TextField(
               controller: controller,
               decoration: InputDecoration(
                 hintText: 'e.g. Dr. Amara Diallo',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: slate200)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: slate200),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
               ),
             ),
             const SizedBox(height: 20),
             GestureDetector(
-              // onTap: () {
-              onTap: () async { // added
+              onTap: () async {
                 if (controller.text.trim().isEmpty) return;
-                // final token = ref.read(shareTokensProvider.notifier).generate(controller.text.trim());
-                final token = await ref // added
-                  .read(
-                    shareTokensProvider.notifier,
-                  )
-                  .generateToken(
-                    controller.text.trim(),
-                  );
-                if (ctx.mounted) {
-                  Navigator.pop(ctx);
-                } // added
-                // Navigator.pop(ctx);
+                final token = await ref
+                    .read(shareTokensProvider.notifier)
+                    .generate(controller.text.trim());
+                if (token == null) return;
+                if (ctx.mounted) Navigator.pop(ctx);
                 Clipboard.setData(ClipboardData(text: token.token));
-                ref.read(toastProvider.notifier).show('Token ${token.token} copied — valid 24h');
+                ref
+                    .read(toastProvider.notifier)
+                    .show('Token ${token.token} copied — valid 24h');
               },
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: BoxDecoration(color: teal600, borderRadius: BorderRadius.circular(50)),
-                child: const Text('Generate & copy token', textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                decoration: BoxDecoration(
+                  color: teal600,
+                  borderRadius: BorderRadius.circular(50),
+                ),
+                child: const Text(
+                  'Generate & copy token',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
             ),
           ],
@@ -403,7 +561,10 @@ class _OcrImportCard extends ConsumerWidget {
 
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(border: Border.all(color: teal100), borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        border: Border.all(color: teal100),
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -415,19 +576,49 @@ class _OcrImportCard extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Scan lab document', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: slate900)),
-                    Text('Extract values automatically via OCR', style: TextStyle(fontSize: 11, color: slate400)),
+                    Text(
+                      'Scan lab document',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: slate900,
+                      ),
+                    ),
+                    Text(
+                      'Extract values automatically via OCR',
+                      style: TextStyle(fontSize: 11, color: slate400),
+                    ),
                   ],
                 ),
               ),
               GestureDetector(
                 onTap: isProcessing ? null : () => _runOcr(context, ref),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(color: teal600, borderRadius: BorderRadius.circular(50)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: teal600,
+                    borderRadius: BorderRadius.circular(50),
+                  ),
                   child: isProcessing
-                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text('Scan', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Scan',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                 ),
               ),
             ],
@@ -437,41 +628,68 @@ class _OcrImportCard extends ConsumerWidget {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: teal50, borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                color: teal50,
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Extracted values', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: teal700)),
+                  const Text(
+                    'Extracted values',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: teal700,
+                    ),
+                  ),
                   const SizedBox(height: 6),
-                  Text(ocrResult!, style: const TextStyle(fontSize: 12, color: slate700, height: 1.6)),
+                  Text(
+                    ocrResult!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: slate700,
+                      height: 1.6,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   GestureDetector(
-                    // onTap: () {
-                    onTap: () async { // added
-                      // ref.read(documentsProvider.notifier).addOcrDocument(
-                      await ref // added
-                        .read(documentsProvider.notifier)
-                        .addDocument( // added
-                          MedicalDocument(
-                            id: DateTime.now().millisecondsSinceEpoch.toString(),
-                            icon: Icons.science,
-                            name: 'OCR Lab Import ${DateTime.now().day}/${DateTime.now().month}',
-                            source: 'Scanned · ${DateTime.now().day} ${_monthName(DateTime.now().month)} ${DateTime.now().year}',
-                            ocrText: ocrResult,
-                          ),
-                        );
-                      // ref.read(ocrProvider.notifier).clear();
-                      await ref // added
-                        .read(ocrProvider.notifier)
-                        .clearResult(); // added
-                      ref.read(toastProvider.notifier).show('Lab results saved to documents');
+                    onTap: () {
+                      ref
+                          .read(documentsProvider.notifier)
+                          .addOcrDocument(
+                            MedicalDocument(
+                              id: DateTime.now().millisecondsSinceEpoch
+                                  .toString(),
+                              icon: Icons.science,
+                              name:
+                                  'OCR Lab Import ${DateTime.now().day}/${DateTime.now().month}',
+                              source:
+                                  'Scanned · ${DateTime.now().day} ${_monthName(DateTime.now().month)} ${DateTime.now().year}',
+                              ocrText: ocrResult,
+                            ),
+                          );
+                      ref.read(ocrProvider.notifier).clear();
+                      ref
+                          .read(toastProvider.notifier)
+                          .show('Lab results saved to documents');
                     },
                     child: Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(color: teal600, borderRadius: BorderRadius.circular(50)),
-                      child: const Text('Save to documents', textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                      decoration: BoxDecoration(
+                        color: teal600,
+                        borderRadius: BorderRadius.circular(50),
+                      ),
+                      child: const Text(
+                        'Save to documents',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -485,14 +703,24 @@ class _OcrImportCard extends ConsumerWidget {
 
   Future<void> _runOcr(BuildContext context, WidgetRef ref) async {
     ref.read(_ocrLoadingProvider.notifier).set(true);
-    // await ref.read(ocrProvider.notifier).processImage('simulated_path');
-    await ref // added
-      .read(ocrProvider.notifier)
-      .processDocument('simulated_path'); // added
+    await ref.read(ocrProvider.notifier).processImage('simulated_path');
     ref.read(_ocrLoadingProvider.notifier).set(false);
   }
 
-  String _monthName(int m) => const ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m - 1];
+  String _monthName(int m) => const [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ][m - 1];
 }
 
 // Local loading state for OCR button
@@ -502,5 +730,6 @@ class _OcrLoadingNotifier extends Notifier<bool> {
   void set(bool v) => state = v;
 }
 
-final _ocrLoadingProvider = NotifierProvider<_OcrLoadingNotifier, bool>(_OcrLoadingNotifier.new);
-
+final _ocrLoadingProvider = NotifierProvider<_OcrLoadingNotifier, bool>(
+  _OcrLoadingNotifier.new,
+);

@@ -1,11 +1,8 @@
 import '../models/models.dart';
-import 'mock_data.dart';
 import 'share_token_data_source.dart';
 
-class MockShareTokenDataSource
-    implements ShareTokenDataSource {
-  final List<RecordShareToken> _tokens =
-      List.from(mockShareTokens);
+class MockShareTokenDataSource implements ShareTokenDataSource {
+  final List<RecordShareToken> _tokens = [];
 
   @override
   Future<List<RecordShareToken>> getTokens() async {
@@ -13,16 +10,12 @@ class MockShareTokenDataSource
   }
 
   @override
-  Future<RecordShareToken> generateToken(
-    String doctorName,
-  ) async {
+  Future<RecordShareToken> generateToken(String doctorName) async {
     final token = RecordShareToken(
       token:
           'MED-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
       doctorName: doctorName,
-      expiresAt: DateTime.now().add(
-        const Duration(hours: 24),
-      ),
+      expiresAt: DateTime.now().add(const Duration(hours: 24)),
     );
 
     _tokens.add(token);
@@ -31,12 +24,7 @@ class MockShareTokenDataSource
   }
 
   @override
-  Future<void> revokeToken(
-    String token,
-  ) async {
-    _tokens.removeWhere(
-      (t) => t.token == token,
-    );
+  Future<void> revokeToken(String token) async {
+    _tokens.removeWhere((t) => t.token == token);
   }
 }
-

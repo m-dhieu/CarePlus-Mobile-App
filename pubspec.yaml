@@ -40,6 +40,16 @@ dependencies:
   cloud_firestore: ^6.7.1
   google_sign_in: ^7.2.0
   shared_preferences: ^2.5.5
+  drift: ^2.34.2
+  drift_flutter: ^0.3.1
+  sqlite3_flutter_libs: ^0.6.0+eol
+  path_provider: ^2.1.6
+  path: ^1.9.1
+  connectivity_plus: ^7.3.1
+  uuid: ^4.6.0
+  google_sign_in: ^7.2.0
+  sign_in_with_apple: ^8.1.0
+  crypto: ^3.0.7
 
 dev_dependencies:
   flutter_test:
@@ -51,7 +61,10 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
-  firebase_auth_mocks: ^0.15.2
+  drift_dev: ^2.34.0
+  build_runner: ^2.15.1
+  integration_test:
+    sdk: flutter
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

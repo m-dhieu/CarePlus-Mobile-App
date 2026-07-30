@@ -76,24 +76,40 @@ class OnboardingPage {
 //   Medication({required this.id, required this.name, required this.dose, required this.condition, required this.refills});
 // }
 
-// class Reminder {
-//   final String id;
-//   final String medicationName;
-//   final TimeOfDay time;
-//   final List<bool> days; // Mon–Sun
-//   bool enabled;
-//   Reminder({required this.id, required this.medicationName, required this.time, required this.days, this.enabled = true});
+class Reminder {
+  final String id;
+  final String medicationName;
+  final TimeOfDay time;
+  final List<bool> days; // Mon–Sun
+  bool enabled;
+  Reminder({required this.id, required this.medicationName, required this.time, required this.days, this.enabled = true});
 
-//   String get daysLabel {
-//     const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-//     final active = <String>[];
-//     for (int i = 0; i < 7; i++) {
-//       if (days[i]) active.add(labels[i]);
-//     }
-//     if (active.length == 7) return 'Every day';
-//     return active.join(' · ');
-//   }
-// }
+  Reminder copyWith({
+    String? id,
+    String? medicationName,
+    TimeOfDay? time,
+    List<bool>? days,
+    bool? enabled,
+  }) {
+    return Reminder(
+      id: id ?? this.id,
+      medicationName: medicationName ?? this.medicationName,
+      time: time ?? this.time,
+      days: days ?? this.days,
+      enabled: enabled ?? this.enabled,
+    );
+  }
+
+  String get daysLabel {
+    const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    final active = <String>[];
+    for (int i = 0; i < 7; i++) {
+      if (days[i]) active.add(labels[i]);
+    }
+    if (active.length == 7) return 'Every day';
+    return active.join(' · ');
+  }
+}
 
 // ── Journal ───────────────────────────────────────────────────────────────────
 
