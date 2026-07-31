@@ -7,5 +7,3 @@ The journey begins at the Presentation Layer, where Flutter screens handle patie
 When users interact with these screens, data flows into the State Management Layer. Here, Riverpod handles app logic and refreshes the UI. It was chosen over BLoC because it integrates perfectly with live local database streams.
 
 Bridging the gap to storage, the Repository Layer acts as a middleman, shielding the UI and state managers from direct data-source connections.
-
-...
