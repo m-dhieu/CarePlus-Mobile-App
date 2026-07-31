@@ -3,8 +3,10 @@
 Care+ is an offline-first mobile healthcare management application built with Flutter, Riverpod, a local Drift (SQLite) database, and Firebase. It lets a patient keep a personal health profile, track medications and reminders, log health metrics and journal entries, store medical documents, manage caregivers, and generate time-limited emergency-access codes and record-sharing tokens, all usable without a live internet connection, syncing to the cloud once one is available.
 
 Developed by Group 3 
+
 Screenshots
 
+[Login (2).png]  
 
 ## Features
 
