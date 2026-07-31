@@ -6,11 +6,11 @@ Developed by Group 3
 
 Screenshots
 
-  *[!SignUp.png]* 
+  *![SignUp.png](CarePlus-Mobile-App/SignUp.png)* 
   
-  *[!MyProfile.png]()* 
+  *![MyProfile.png](CarePlus-Mobile-App/MyProfile.png)* 
 
-  *[!Home.png]*
+  *![Home.png](CarePlus-Mobile-App/Home.png)*
 
 ## Features
 
@@ -116,6 +116,7 @@ service cloud.firestore {
   }
 }
 ```
+More information are in the docs folder
 
 ## Known Limitations
 
