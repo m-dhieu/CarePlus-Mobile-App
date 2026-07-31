@@ -147,12 +147,13 @@ class AuthService {
   }
 
   Future<void> signOut() async {
+    // Clear Firebase first so UI auth state flips even if Google hangs.
+    await _auth.signOut();
     try {
       await _googleSignIn.signOut();
     } catch (_) {
       // Google may not have been initialized / used.
     }
-    await _auth.signOut();
   }
 
   Future<UserCredential> _signUpAndBootstrapProfile({
