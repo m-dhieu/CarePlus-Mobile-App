@@ -6,7 +6,11 @@ Developed by Group 3
 
 Screenshots
 
-[Login (2).png]  
+  *[!SignUp.png]* 
+  
+  *[!MyProfile.png]()* 
+
+  *[!Home.png]*
 
 ## Features
 
