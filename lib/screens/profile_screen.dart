@@ -447,8 +447,8 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 GestureDetector(
-                  onTap: () {
-                    ref.read(authProvider.notifier).logout();
+                  onTap: () async {
+                    await ref.read(authProvider.notifier).logout();
                     ref.read(screenProvider.notifier).go('home');
                   },
                   child: Container(
