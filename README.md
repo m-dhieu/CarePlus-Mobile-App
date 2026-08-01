@@ -14,8 +14,7 @@ Developed by Group 3
 
 # App Screenshots
 
-| Sign Up | Profile | Home Dashboard |
-| ![SignUp](SignUp.png) | ![MyProfile](MyProfile.png) | ![Home](Home.png) |
+| ![SignUp](SignUp.png) | ![MyProfile](MyProfile.png) | ![Home](Home.png) | 
 
 ---
 
@@ -25,6 +24,8 @@ Developed by Group 3
 - Email/password authentication through Firebase Authentication.
 - Google and Apple sign-in support.
 - Email verification during registration.
+- Password reset verification screenshot
+- ![Authentication](docs/Authentication.jpeg)
 
 ## Health Profile
 - Store personal health information including:
