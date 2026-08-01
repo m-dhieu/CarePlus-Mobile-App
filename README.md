@@ -4,13 +4,11 @@ Care+ is an offline-first mobile healthcare management application built with Fl
 
 Developed by Group 3 
 
-Screenshots
-
-  *![SignUp.png](CarePlus-Mobile-App/SignUp.png)* 
+  *![SignUp.png](SignUp.png)* 
   
-  *![MyProfile.png](CarePlus-Mobile-App/MyProfile.png)* 
+  *![MyProfile.png](MyProfile.png)* 
 
-  *![Home.png](CarePlus-Mobile-App/Home.png)*
+  *![Home.png](Home.png)*
 
 ## Features
 
